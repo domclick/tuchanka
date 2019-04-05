@@ -1,0 +1,13 @@
+<network>
+	<name>tuchanka</name>
+	<uuid>3f13e9e3-d268-443e-aec0-f66839805b23</uuid>
+	<bridge name="tuchanka" macTableManager="libvirt"/>
+	<mtu size="1450"/>
+	<forward mode="nat"/>
+	<dns enable="yes" forwardPlainNames="no"/>
+	<ip address="192.168.124.254" prefix="24" localPtr="yes">
+	<dhcp>
+		<range start="192.168.124.201" end="192.168.124.250"/>
+	</dhcp>
+	</ip>
+</network>

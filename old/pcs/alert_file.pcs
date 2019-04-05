@@ -1,0 +1,3 @@
+# нужно было только для отладки
+pcs alert create id=alert_file description="Log events to a file." path=/var/lib/pacemaker/alert_file.sh
+pcs alert recipient add alert_file id=my-alert_logfile value=/var/log/pcmk_alert_file.log

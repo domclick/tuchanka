@@ -1,0 +1,22 @@
+<domain type='lxc'>
+	<name>tuchanka0b</name>
+	<uuid>083a264b-4f2b-4580-820d-6632231d01dd</uuid>
+	<description>Tuchanka 0b</description>
+	<os>
+		<type arch="x86_64">exe</type>
+		<init>sbin/init</init>
+	</os>
+	<vcpu>1</vcpu>
+	<memory unit='MiB'>512</memory>
+	<devices>
+		<filesystem type='mount'>
+			<source dir='/home/olleg/tuchanka/0b'/>
+			<target dir='/'/>
+		</filesystem>
+		<interface type='network'>
+			<source network='tuchanka'/>
+			<mtu size='1450'/>
+		</interface>
+		<console type='pty'/>
+	</devices>
+</domain>

@@ -1,0 +1,2 @@
+pcs stonith create stonith fence_virsh identity_file=/root/.ssh/id_ed25519 ipaddr=gateway124 login=root ssh_options="-t '/bin/bash -c \"PS1=\[EXPECT\]#\  LIBVIRT_DEFAULT_URI=lxc:/// /bin/bash --noprofile --norc\"'"
+pcs alert create path='/opt/tuchanka/fence_stonith.alert' id='fence_stonith'
