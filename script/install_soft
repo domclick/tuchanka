@@ -1,0 +1,39 @@
+#!/bin/bash
+# safe bash
+set -o errexit -o noclobber -o nounset -o pipefail
+# get config
+script_dir="$(dirname "${BASH_SOURCE[0]}")"
+. "${script_dir}/config.bash"
+. "${script_dir}/hard_off.bash"
+. "${script_dir}/rollback.bash"
+. "${script_dir}/vm_ssh.bash"
+. "${script_dir}/start_vms.bash"
+. "${script_dir}/soft_off.bash"
+. "${script_dir}/snapshot.bash"
+hard_off
+rollback 'create_vms'
+start_vms
+for h in "${vm_hostname[@]}"
+do
+	echo "Install soft to $h"
+	vm_ssh "$h" 'localectl set-locale LANG=ru_RU.UTF-8 LC_MESSAGES=en_US.UTF-8 LANGUAGE=en'
+#	unstable #	vm_ssh "$h" 'yum --assumeyes install deltarpm'
+	vm_ssh "$h" 'yum --assumeyes update'
+	# для htop нужен epel
+	vm_ssh "$h" 'yum --assumeyes install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm'
+	vm_ssh "$h" 'yum --assumeyes install mc vim nmap mlocate htop pcs'
+	vm_ssh "$h" 'yum --assumeyes install http://repo.zabbix.com/zabbix/4.0/rhel/7/x86_64/zabbix-release-4.0-1.el7.noarch.rpm'
+	vm_ssh "$h" 'yum --assumeyes install zabbix-agent'
+	if [ "$h" = "${vm_hostname[${Witness}]}" ]
+	then
+		vm_ssh "$h" 'yum --assumeyes install corosync-qnetd'
+	else
+		vm_ssh "$h" 'yum --assumeyes install https://download.postgresql.org/pub/repos/yum/11/redhat/rhel-7-x86_64/pgdg-centos11-11-2.noarch.rpm'
+		vm_ssh "$h" 'yum --assumeyes install postgresql11 postgresql11-server postgresql11-contrib pgcenter resource-agents-paf corosync-qdevice awscli'
+		# FIXME
+		vm_ssh "$h" 'yum --assumeyes install sbd'
+	fi
+done
+soft_off
+snapshot 'install_soft' 'The snapshot was taken at the end of the "install_soft" script.'
+exit 0

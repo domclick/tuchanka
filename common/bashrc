@@ -1,0 +1,32 @@
+# color chart
+# https://upload.wikimedia.org/wikipedia/commons/9/95/Xterm_color_chart.png
+# set root to red
+root_cursor_color='#FF0000'
+root_prompt_color='196'
+# default colors
+export CURSOR_COLOR='#EEEEEE'
+export PROMPT_COLOR='255'
+# local stuff (rewrite default colors there)
+[[ -f ~/.bashrc_local ]] && . ~/.bashrc_local
+#my favorite PS1
+unset PS1
+case "$TERM" in
+xterm*|rxvt*)
+	PS1='\[\e[38;5;'"$PROMPT_COLOR"'m\]'
+	PS1="$PS1"'\t j\j '
+	[[ $UID == 0 ]] && { PS1="$PS1"'\[\e[38;5;'"$root_prompt_color"'m\]'; }
+	PS1="$PS1"'\u'
+	[[ $UID == 0 ]] && { PS1="$PS1"'\[\e[38;5;'"$PROMPT_COLOR"'m\]'; }
+	PS1="$PS1"'@\h:\w\n'
+	PS1="$PS1"'\[\e]12;'"$CURSOR_COLOR"'\a\]'
+	if [[ $UID == 0 ]]; then
+		PS1="$PS1"'\[\e[38;5;'"$root_prompt_color"'m\]'
+	else
+		PS1="$PS1"'\[\e[38;5;'"$PROMPT_COLOR"'m\]'
+	fi
+	PS1="$PS1"'\$ \[\e[m\]'
+	;;
+*)
+	PS1='\t j\j \u@\h:\w\n\$ '
+	;;
+esac

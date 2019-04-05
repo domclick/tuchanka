@@ -1,0 +1,11 @@
+#!/bin/bash
+# safe bash
+set -o errexit -o noclobber -o nounset -o pipefail
+# get config
+script_dir="$(dirname "${BASH_SOURCE[0]}")"
+. "${script_dir}/config.bash"
+. "${script_dir}/hard_off.bash"
+. "${script_dir}/rollback.bash"
+hard_off
+rollback 'create_vms'
+exit 0

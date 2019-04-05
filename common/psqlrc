@@ -1,0 +1,5 @@
+\setenv PSQL_EDITOR 'vim'
+\setenv PSQL_EDITOR_LINENUMBER_ARG '+'
+\set ON_ERROR_ROLLBACK 'off'
+\set ON_ERROR_STOP 'on'
+--\set SHOW_CONTEXT 'always'
