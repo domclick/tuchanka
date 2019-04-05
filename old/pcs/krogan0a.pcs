@@ -1,8 +1,0 @@
-pcs resource create krogan0aIP ocf:heartbeat:IPaddr2 nic=eth0 cidr_netmask=24 ip=192.168.124.101 --disabled && \
-pcs resource create krogan0aDB ocf:heartbeat:pgsqlms bindir=/opt/tuchanka/pgsql pgdata=/var/lib/pgsql/krogan0a pgport=5433 recovery_template=/var/lib/pgsql/krogan0a.paf meta master notify=true resource-stickiness=10 --disabled && \
-pcs constraint colocation add krogan0aIP with master krogan0aDB-master INFINITY && \
-pcs constraint order promote krogan0aDB-master then start krogan0aIP symmetrical=false && \
-pcs constraint order demote krogan0aDB-master then stop krogan0aIP symmetrical=false && \
-pcs constraint location krogan0aDB-master rule role=master score=100 '#uname' eq string tuchanka0a and master-krogan0aDB ne integer 1001 && \
-pcs resource enable krogan0aIP && \
-pcs resource enable krogan0aDB
