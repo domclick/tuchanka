@@ -69,14 +69,16 @@ do
 	h="${vm_hostname[${db_master[$k]}]}"
 	vm_ssh "$h" "pcs cluster auth ${vm_hostname[$Witness]} ${hostnames} -u hacluster -p '${hacluster_password}'"
 	vm_ssh "$h" "pcs cluster setup --name ${krogan} ${hostnames}"
-#	vm_ssh "$h" 'pcs stonith sbd enable'
+	vm_ssh "$h" 'pcs stonith sbd enable'
 	# В redhat работают .... Включение sbd автоматичесий включает auto_tie_breaker, который конфликтует и не нужен в случае quorum device.
 	# Поэтому строчкой ниже workaround.
-#	vm_ssh "$h" 'pcs quorum update auto_tie_breaker=0 --force'
+	vm_ssh "$h" 'pcs quorum update auto_tie_breaker=0 --force'
 	vm_ssh "$h" 'pcs cluster start --all'
 	vm_ssh "$h" "pcs quorum device add model net host='${vm_hostname[$Witness]}' algorithm=ffsplit"
 	# manual check: pcs quorum device status
-	vm_ssh "$h" 'pcs property set stonith-enabled=false'
+	vm_ssh "$h" 'pcs property set stonith-enabled=true'
+	# Должно быть примерно в 2 раза больше, чем SBD_WATCHDOG_TIMEOUT в /etc/sysconfig/sbd в виртуалке
+	vm_ssh "$h" 'pcs property set stonith-watchdog-timeout=12'
 done
 
 # Цикл по DB
