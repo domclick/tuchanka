@@ -28,10 +28,10 @@ do
 	then
 		vm_ssh "$h" 'yum --assumeyes install corosync-qnetd'
 	else
-		vm_ssh "$h" 'yum --assumeyes install https://download.postgresql.org/pub/repos/yum/11/redhat/rhel-7-x86_64/pgdg-centos11-11-2.noarch.rpm'
 		vm_ssh "$h" 'yum --assumeyes install postgresql11 postgresql11-server postgresql11-contrib pgcenter resource-agents-paf corosync-qdevice awscli'
 		# FIXME
 		vm_ssh "$h" 'yum --assumeyes install sbd'
+		vm_ssh "$h" 'yum --assumeyes install https://download.postgresql.org/pub/repos/yum/11/redhat/rhel-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm'
 	fi
 done
 soft_off
