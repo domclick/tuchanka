@@ -121,8 +121,8 @@ do
 		vm_cp "$hostname" "${pcs_dir}/${pacemaker_pcs}" "${pacemaker_pcs}"
 		vm_ssh "$hostname" "cat >'bin/${restore_sh}'" <<-EOF
 			#!/bin/sh
-			# Временно, потом надо будет переделать чтобы был с бэкапом старой копии
-			command rm -r '${pgdata}'
+			# Временно, потом надо будет переделать чтобы был с бэкапом старой копии в S3
+			command mv '${pgdata}' "${pgdata}.\$(date --iso-8601=seconds)"
 			command su -l postgres -c "pg_basebackup --pgdata='${pgdata}' --dbname='host=${config_name} port=${pgport} user=replicant sslmode=disable' --progress"
 			EOF
 		vm_ssh "$hostname" "chmod 755 'bin/${restore_sh}'"
