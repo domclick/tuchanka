@@ -78,7 +78,7 @@ do
 	# manual check: pcs quorum device status
 	vm_ssh "$h" 'pcs property set stonith-enabled=true'
 	# Должно быть примерно в 2 раза больше, чем SBD_WATCHDOG_TIMEOUT в /etc/sysconfig/sbd в виртуалке
-	vm_ssh "$h" 'pcs property set stonith-watchdog-timeout=12'
+	vm_ssh "$h" 'pcs property set stonith-watchdog-timeout=10'
 done
 
 # Цикл по DB
