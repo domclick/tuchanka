@@ -131,6 +131,7 @@ do
 			command su -l postgres -c "pg_basebackup --pgdata='${pgdata}' --dbname='host=${config_name} port=${pgport} user=replicant sslmode=disable' --progress"
 			EOF
 		vm_ssh "$hostname" "chmod 755 'bin/${restore_sh}'"
+		vm_cp "$hostname" "${script_dir}/../${hostname}/restore" "bin/"
 	done
 	# список команд для pcs для создания ресурса DB в кластере pacemaker
 	vm_ssh "$master" ". '${pacemaker_pcs}'"

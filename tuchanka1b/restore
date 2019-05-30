@@ -1,0 +1,2 @@
+#!/bin/sh
+restore1 && pcs cluster start && sleep 10 && pcs resource cleanup
