@@ -124,7 +124,9 @@ do
 		vm_ssh "$hostname" "cat >'bin/${restore_sh}'" <<-EOF
 			#!/bin/sh
 			# Временно, потом надо будет переделать чтобы был с бэкапом старой копии в S3
-			command mv '${pgdata}' "${pgdata}.\$(date --iso-8601=seconds)"
+			command rm -r '${pgdata}'
+			# Если бэкапить таким образом, заканчивается место в виртуалках
+			#command mv '${pgdata}' "${pgdata}.\$(date --iso-8601=seconds)"
 			command su -l postgres -c "pg_basebackup --pgdata='${pgdata}' --dbname='host=${config_name} port=${pgport} user=replicant sslmode=disable' --progress"
 			EOF
 		vm_ssh "$hostname" "chmod 755 'bin/${restore_sh}'"
