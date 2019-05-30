@@ -35,6 +35,7 @@ do
 	# PostgreSQL and Witness specific things
 	if [ "$h" = "${vm_hostname[${Witness}]}" ]
 	then # witness
+		vm_ssh "$h" "sed -e '/^COROSYNC_QNETD_OPTIONS=\"\"$/s//COROSYNC_QNETD_OPTIONS=\"-S dpd_interval=1000\"/' -i '/etc/sysconfig/corosync-qnetd'"
 		vm_ssh "$h" 'pcs qdevice setup model net --enable --start'
 		# manual check: pcs qdevice status net
 	else # other, but not witness
@@ -74,7 +75,7 @@ do
 	# Поэтому строчкой ниже workaround.
 	vm_ssh "$h" 'pcs quorum update auto_tie_breaker=0 --force'
 	vm_ssh "$h" 'pcs cluster start --all'
-	vm_ssh "$h" "pcs quorum device add model net host='${vm_hostname[$Witness]}' algorithm=ffsplit"
+	vm_ssh "$h" "pcs quorum device add sync_timeout=2000 timeout=1000 model net host='${vm_hostname[$Witness]}' algorithm=ffsplit"
 	# manual check: pcs quorum device status
 	vm_ssh "$h" 'pcs property set stonith-enabled=true'
 	# Должно быть примерно в 2 раза больше, чем SBD_WATCHDOG_TIMEOUT в /etc/sysconfig/sbd в виртуалке
