@@ -1,3 +1,4 @@
 /ssh_config
 /ssh_known_hosts
 /*.iso
+/config.bash
