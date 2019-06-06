@@ -1,0 +1,13 @@
+#!/bin/bash
+# safe bash
+set -o errexit -o noclobber -o nounset -o pipefail
+
+# get config
+script_dir="$(dirname "${BASH_SOURCE[0]}")"
+
+"${script_dir}/create_vms" "$@"\
+	&& "${script_dir}/install_soft" \
+	&& "${script_dir}/configure" \
+	&& "${script_dir}/heartbeat"
+
+exit 0
