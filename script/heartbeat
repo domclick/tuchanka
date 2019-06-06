@@ -10,7 +10,6 @@ readonly script_dir="$(dirname "${BASH_SOURCE[0]}")"
 . "${script_dir}/start_vms.bash"
 . "${script_dir}/soft_off.bash"
 . "${script_dir}/snapshot.bash"
-readonly pgsql_dir='/var/lib/pgsql' # в ../common/postgresql.conf независимо прописан путь /var/lib/pgsql
 hard_off
 rollback 'configure'
 start_vms
