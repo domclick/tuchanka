@@ -1,19 +1,32 @@
 #!/bin/bash
 # safe bash
 set -o errexit -o noclobber -o nounset -o pipefail
+
 # get config
 readonly script_dir="$(dirname "${BASH_SOURCE[0]}")"
 . "${script_dir}/config.bash"
-. "${script_dir}/hard_off.bash"
-. "${script_dir}/rollback.bash"
 . "${script_dir}/vm_ssh.bash"
-. "${script_dir}/start_vms.bash"
-. "${script_dir}/soft_off.bash"
-. "${script_dir}/snapshot.bash"
+
+if $autoVirtualBox
+then
+	. "${script_dir}/hard_off.bash"
+	. "${script_dir}/rollback.bash"
+	. "${script_dir}/start_vms.bash"
+	. "${script_dir}/soft_off.bash"
+	. "${script_dir}/snapshot.bash"
+fi
+
 readonly pgsql_dir='/var/lib/pgsql' # в ../common/postgresql.conf независимо прописан путь /var/lib/pgsql
-hard_off
-rollback 'install_soft'
-start_vms
+
+if $autoVirtualBox
+then
+	hard_off
+	rollback 'install_soft'
+	start_vms
+else
+	echo 'При автоматической установке здесь происходит откат к snapshot, который был создан после доустановки пакетов.'
+fi
+
 # common things for all VM
 # Раскладывание общих файлов по всем VM, с разделением witness/все остальные
 for hk in "${!vm_hostname[@]}"
@@ -24,6 +37,9 @@ do
 	# softdog
 	vm_cp "$h" "${common_dir}/watchdog.conf" '/etc/modules-load.d/watchdog.conf'
 	vm_ssh "$h" 'systemctl restart systemd-modules-load'
+	# Как его настраивать, чтобы работал совместо с pacemaker не знаю
+	vm_ssh "$h" 'systemctl disable firewalld'
+	vm_ssh "$h" 'systemctl stop firewalld'
 	# for pacemaker
 	echo -e "${hacluster_password}\n${hacluster_password}" | vm_ssh "$h" 'passwd --stdin hacluster'
 	# pacemaker redhat client, REST daemon
@@ -39,6 +55,8 @@ do
 		vm_ssh "$h" "sed -e '/^COROSYNC_QNETD_OPTIONS=\"\"$/s//COROSYNC_QNETD_OPTIONS=\"-S dpd_interval=1000\"/' -i '/etc/sysconfig/corosync-qnetd'"
 		vm_ssh "$h" 'pcs qdevice setup model net --enable --start'
 		# manual check of qdevice: pcs qdevice status net
+		# ntpdate setup
+		vm_ssh "$h" "sed -e '/^SYNC_HWCLOCK=no$/s//SYNC_HWCLOCK=yes/' -i '/etc/sysconfig/ntpdate'"
 		# ntpd setup
 		# witness is our backup ntp server, usefull for isolated testbed
 		vm_ssh "$h" "sed -e '/^\(server\)\s/s//#\1/' -i '/etc/ntp.conf'"
@@ -74,6 +92,8 @@ do
 		vm_ssh "$h" 'chmod 0755 bin/mon'
 		# psql user config
 		vm_cp "$h" "${common_dir}/psqlrc" '.psqlrc'
+		# ntpdate setup
+		vm_ssh "$h" "sed -e '/^SYNC_HWCLOCK=no$/s//SYNC_HWCLOCK=yes/' -i '/etc/sysconfig/ntpdate'"
 		# ntpd setup
 		vm_ssh "$h" "sed -e '/^\(server\)\s/s//#\1/' -i '/etc/ntp.conf'"
 		vm_ssh "$h" "cat >>'/etc/ntp.conf'" <<-EOF
@@ -192,6 +212,13 @@ do
 	h="${vm_hostname[${db_master[$k]}]}"
 	vm_ssh "$h" "pcs cluster stop --all"
 done
-soft_off
-snapshot 'configure' 'The snapshot was taken at the end of the "configure" script.'
+
+if $autoVirtualBox
+then
+	soft_off
+	snapshot 'configure' 'The snapshot was taken at the end of the "configure" script.'
+else
+	echo 'При автоматической установке здесь сохраняется snapshot с настроенным pacemaker.'
+fi
+
 exit 0

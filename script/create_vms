@@ -1,45 +1,54 @@
 #!/bin/bash
 # safe bash
 set -o errexit -o noclobber -o nounset -o pipefail
-# command line arguments
-if [ $# -ne 2 ]
-then
-	echo -e "Usage:\n\t $0 <redhat_installation_image.iso> <ssh_public_key_file>" 1>&2
-	exit 1
-fi
-dvd_iso="$1"
-echo "Check installation image \"${dvd_iso}\""
-eval $(VBoxManage unattended detect --iso "${dvd_iso}" --machine-readable)
-if [ "$OSTypeId" = 'RedHat_64' -a "$OSVersion" = '7' ]
-then
-	echo "The installation image \"${dvd_iso}\" is Ok"
-else
-	echo "Error: The installation image must be RedHat 7 64bit or so like (CentOS, for instance)" 1>&2
-	exit 2
-fi
-ssh_public_key="$2"
-echo "Check ssh public key \"${ssh_public_key}\""
-if [ -r "${ssh_public_key}" ]
-then
-	ssh-keygen -B -f "${ssh_public_key}"
-else
-	echo "Error: The ssh public key file is not readable" 1>&2
-	exit 3
-fi
 
 # get config
 script_dir="$(dirname "${BASH_SOURCE[0]}")"
 . "${script_dir}/config.bash"
-. "${script_dir}/soft_off.bash"
-. "${script_dir}/snapshot.bash"
 
+if $autoVirtualBox
+then
+	# check command line arguments
+	if [ $# -ne 2 ]
+	then
+		echo -e "Usage:\n\t $0 <redhat_installation_image.iso> <ssh_public_key_file>" 1>&2
+		exit 1
+	fi
+	dvd_iso="$1"
+	echo "Check installation image \"${dvd_iso}\""
+	eval $(VBoxManage unattended detect --iso "${dvd_iso}" --machine-readable)
+	if [ "$OSTypeId" = 'RedHat_64' -a "$OSVersion" = '7' ]
+	then
+		echo "The installation image \"${dvd_iso}\" is Ok"
+	else
+		echo "Error: The installation image must be RedHat 7 64bit or so like (CentOS, for instance)" 1>&2
+		exit 2
+	fi
+	ssh_public_key="$2"
+	echo "Check ssh public key \"${ssh_public_key}\""
+	if [ -r "${ssh_public_key}" ]
+	then
+		ssh-keygen -B -f "${ssh_public_key}"
+	else
+		echo "Error: The ssh public key file is not readable" 1>&2
+		exit 3
+	fi
+fi
+
+if $autoVirtualBox
+then
+	. "${script_dir}/soft_off.bash"
+	. "${script_dir}/snapshot.bash"
+fi
+
+# generate config files for other scripts
 # create ssh_config (with check of clean install)
 if [ -e "${ssh_config}" ]
 then
 	echo "Error: ssh_config already exists, install is not clean" 1>&2
 	exit 4
 fi
-declare ssh_hosts
+ssh_hosts=''
 for i in "${!vm_name[@]}"
 do
 	echo -e "Host ${vm_hostname[$i]}\n\tHostName ${vm_ip[$i]}"
@@ -75,42 +84,51 @@ do
 done >> "${hosts}"
 echo -e "${vboxnet_hostip}\tvirtualbox virtualbox.tuchanka" >> "${hosts}"
 
-# Подсетка кластера
-echo 'Create a network interface for the host'
-# get name for hostonlyif, if exists
-vboxnet_if="$(VBoxManage list hostonlyifs|
-	tr '\n' '§'|sed -nE "/^.*Name:[[:space:]]+([[:alnum:]]+)§GUID:[^§]+§DHCP:[^§]+§IPAddress:[[:space:]]+${vboxnet_hostip//./\.}§.*$/ s//\1/p")"
-if [ -z "${vboxnet_if}" ]
+if $autoVirtualBox
 then
-	# Создаю интерфейс для hostonly сети и запоминаю имя:
-	vboxnet_if="$(VBoxManage hostonlyif create |
-		sed -E "s/Interface '(vboxnet[0-9]+)' was successfully created/\1/")"
-	# Назначаю IP хосту
-	VBoxManage hostonlyif ipconfig "${vboxnet_if}" --ip "${vboxnet_hostip}"
-	echo "created vboxnet_if=>${vboxnet_if}"
-else
-	echo "Error: vboxnet_if=>${vboxnet_if} already exists" 1>&2
-	exit 5
-fi
+	# Подсетка кластера
+	echo 'Create a network interface for the host'
+	# get name for hostonlyif, if exists
+	vboxnet_if="$(VBoxManage list hostonlyifs|
+		tr '\n' '§'|sed -nE "/^.*Name:[[:space:]]+([[:alnum:]]+)§GUID:[^§]+§DHCP:[^§]+§IPAddress:[[:space:]]+${vboxnet_hostip//./\.}§.*$/ s//\1/p")"
+	if [ -z "${vboxnet_if}" ]
+	then
+		# Создаю интерфейс для hostonly сети и запоминаю имя:
+		vboxnet_if="$(VBoxManage hostonlyif create |
+			sed -E "s/Interface '(vboxnet[0-9]+)' was successfully created/\1/")"
+		# Назначаю IP хосту
+		VBoxManage hostonlyif ipconfig "${vboxnet_if}" --ip "${vboxnet_hostip}"
+		echo "created vboxnet_if=>${vboxnet_if}"
+	else
+		echo "Error: vboxnet_if=>${vboxnet_if} already exists" 1>&2
+		exit 5
+	fi
 
-# Виртуалки
-for i in "${!vm_name[@]}"
-do
-	echo "create ${vm_name[$i]}"
-	VBoxManage createvm --name "${vm_name[$i]}" --groups "${vm_groups[$i]}" --ostype RedHat_64 --register
-	VBoxManage modifyvm "${vm_name[$i]}" --description "${vm_desc[$i]}" --memory $RAM_MiB --vram=$VRAM_MiB --boot1 dvd --boot2 disk --boot3 none --boot4 none --rtcuseutc on --graphicscontroller vboxsvga --firmware bios --defaultfrontend headless --nic1 hostonly --nictype1 virtio --hostonlyadapter1 "${vboxnet_if}" --nic2 nat --nictype2 virtio --mouse usb --keyboard usb --audio none
-	# get host dir
-	vboxvm_dir="$(dirname $(VBoxManage showvminfo "${vm_name[$i]}"|sed -nE '/^Config file:[[:space:]]+(\/.+\.vbox)$/ s//\1/p'))"
-	vboxvm_vdi="${vboxvm_dir}/${vm_name[$i]}.vdi"
-	VBoxManage storagectl "${vm_name[$i]}" --name 'SATA' --add sata --hostiocache off --bootable on
-	VBoxManage createmedium disk --filename "${vboxvm_vdi}" --size $HDD_MiB
-	VBoxManage storageattach "${vm_name[$i]}" --storagectl 'SATA' --type hdd --nonrotational on --discard on --port 0 --device 0 --medium "${vboxvm_vdi}"
-	VBoxManage storageattach "${vm_name[$i]}" --storagectl 'SATA' --type dvddrive --port 1 --device 0 --medium "${dvd_iso}"
-	VBoxManage unattended install "${vm_name[$i]}" --iso="${dvd_iso}" --full-user-name="${vm_ip[$i]}" --locale='ru_RU' --time-zone='Europe/Moscow' --hostname="${vm_hostname[$i]}.tuchanka" --package-selection-adjustment='minimal' --script-template="${script_dir}/redhat7.kickstart" --post-install-command="mkdir -m 700 \"\${MY_TARGET}/root/.ssh\" && echo '$(cat "${ssh_public_key}")' >>\"\${MY_TARGET}/root/.ssh/authorized_keys\"" --start-vm='headless'
-	echo "created ${vm_name[$i]}"
-# VBoxManage иногда внезапно завершает работу :) Вставил задержку
-	sleep 5
-done
+	# Виртуалки
+	for i in "${!vm_name[@]}"
+	do
+		echo "create ${vm_name[$i]}"
+		VBoxManage createvm --name "${vm_name[$i]}" --groups "${vm_groups[$i]}" --ostype RedHat_64 --register
+		VBoxManage modifyvm "${vm_name[$i]}" --description "${vm_desc[$i]}" --memory $RAM_MiB --vram=$VRAM_MiB --boot1 dvd --boot2 disk --boot3 none --boot4 none --rtcuseutc on --graphicscontroller vboxsvga --firmware bios --defaultfrontend headless --nic1 hostonly --nictype1 virtio --hostonlyadapter1 "${vboxnet_if}" --nic2 nat --nictype2 virtio --mouse usb --keyboard usb --audio none
+		# get host dir
+		vboxvm_dir="$(dirname $(VBoxManage showvminfo "${vm_name[$i]}"|sed -nE '/^Config file:[[:space:]]+(\/.+\.vbox)$/ s//\1/p'))"
+		vboxvm_vdi="${vboxvm_dir}/${vm_name[$i]}.vdi"
+		VBoxManage storagectl "${vm_name[$i]}" --name 'SATA' --add sata --hostiocache off --bootable on
+		VBoxManage createmedium disk --filename "${vboxvm_vdi}" --size $HDD_MiB
+		VBoxManage storageattach "${vm_name[$i]}" --storagectl 'SATA' --type hdd --nonrotational on --discard on --port 0 --device 0 --medium "${vboxvm_vdi}"
+		VBoxManage storageattach "${vm_name[$i]}" --storagectl 'SATA' --type dvddrive --port 1 --device 0 --medium "${dvd_iso}"
+		VBoxManage unattended install "${vm_name[$i]}" --iso="${dvd_iso}" --full-user-name="${vm_ip[$i]}" --locale='ru_RU' --time-zone='Europe/Moscow' --hostname="${vm_hostname[$i]}.tuchanka" --package-selection-adjustment='minimal' --script-template="${script_dir}/redhat7.kickstart" --post-install-command="mkdir -m 700 \"\${MY_TARGET}/root/.ssh\" && echo '$(cat "${ssh_public_key}")' >>\"\${MY_TARGET}/root/.ssh/authorized_keys\"" --start-vm='headless'
+		echo "created ${vm_name[$i]}"
+	# VBoxManage иногда внезапно завершает работу :) Вставил задержку
+		sleep 5
+	done
+else
+	echo 'При автоматической установке создается интерфейс админского компьютера во внутренней подсетке кластера.'
+	echo 'Создаются виртуалки, на них устанавливается CentOS с предварительной настройкой в инсталляторе.'
+	echo 'И публичный ключ сисадмина записывается пользователю root.'
+	echo 'А сейчас ручной режим и поэтому все эти действия необходимо выполнить вручную.'
+	echo 'Дальнейшее выполнение скрипта ожидает, что на серверах кластера уже запущен ssh.'
+fi
 
 # Жду завершение установки, записываю публичный ключ хоста, выключаю
 declare ssh_key
@@ -129,7 +147,13 @@ do
 done
 unset -v ssh_key
 
-# Жду завершение выключения, делаю snapshot
-soft_off
-snapshot 'create_vms' 'The snapshot was taken at the end of the "create_vms" script.'
+if $autoVirtualBox
+then
+	# Жду завершение выключения, делаю snapshot
+	soft_off
+	snapshot 'create_vms' 'The snapshot was taken at the end of the "create_vms" script.'
+else
+	echo 'При автоматической установке здесь сохраняется snapshot установленных линуксов.'
+fi
+
 exit 0

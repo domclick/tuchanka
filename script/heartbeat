@@ -1,18 +1,30 @@
 #!/bin/bash
 # safe bash
 set -o errexit -o noclobber -o nounset -o pipefail
+
 # get config
 readonly script_dir="$(dirname "${BASH_SOURCE[0]}")"
 . "${script_dir}/config.bash"
-. "${script_dir}/hard_off.bash"
-. "${script_dir}/rollback.bash"
 . "${script_dir}/vm_ssh.bash"
-. "${script_dir}/start_vms.bash"
-. "${script_dir}/soft_off.bash"
-. "${script_dir}/snapshot.bash"
-hard_off
-rollback 'configure'
-start_vms
+
+if $autoVirtualBox
+then
+	. "${script_dir}/hard_off.bash"
+	. "${script_dir}/rollback.bash"
+	. "${script_dir}/start_vms.bash"
+	. "${script_dir}/soft_off.bash"
+	. "${script_dir}/snapshot.bash"
+fi
+
+if $autoVirtualBox
+then
+	hard_off
+	rollback 'configure'
+	start_vms
+else
+	echo 'При автоматической установке здесь происходит откат к snapshot, который был создан после настройки pacemaker.'
+fi
+
 # цикл по кластерам, первичная настройка
 for k in "${!krogan_cluster[@]}"
 do
@@ -30,8 +42,11 @@ do
 	float_master="${float_hostname[$k]}"
 	master="${vm_hostname[${db_master[$k]}]}"
 	echo "Install heartbeat into ${master}"
-	# wait for ping
-	ping -q -o "${float_master}"
+	echo "Waiting for ping ${float_master}"
+	while ! ping -q -c 1 "${float_master}"
+	do
+		sleep 1
+	done
 	vm_ssh "$master" "psql --port=${pgport} postgres postgres" <"${heartbeat_dir}/heartbeat.sql"
 done
 
@@ -42,6 +57,13 @@ do
 	h="${vm_hostname[${db_master[$k]}]}"
 	vm_ssh "$h" "pcs cluster stop --all"
 done
-soft_off
-snapshot 'heartbeat' 'The snapshot was taken at the end of the "heartbeat" script.'
+
+if $autoVirtualBox
+then
+	soft_off
+	snapshot 'heartbeat' 'The snapshot was taken at the end of the "heartbeat" script.'
+else
+	echo 'При автоматической установке здесь сохраняется snapshot с установленной БД "heartbeat".'
+fi
+
 exit 0

@@ -1,33 +1,42 @@
 #!/bin/bash
 # safe bash
 set -o errexit -o noclobber -o nounset -o pipefail
+
 # get config
 script_dir="$(dirname "${BASH_SOURCE[0]}")"
 . "${script_dir}/config.bash"
-. "${script_dir}/hard_off.bash"
 
-hard_off
-for i in "${!vm_name[@]}"
-do
-	grep_count=$(VBoxManage list vms | { grep --count --fixed-strings "\"${vm_name[$i]}\"" || [ $? -eq 1 ]; })
-	if [ $grep_count -ne 0 ]
-	then
-		echo "destroy ${vm_name[$i]}"
-		VBoxManage unregistervm "${vm_name[$i]}" --delete
-	fi
-done
-
-# get name for hostonlyif
-vboxnet_if="$(VBoxManage list hostonlyifs|
-	tr '\n' '§'|sed -nE "/^.*Name:[[:space:]]+([[:alnum:]]+)§GUID:[^§]+§DHCP:[^§]+§IPAddress:[[:space:]]+${vboxnet_hostip//./\.}§.*$/ s//\1/p")"
-if [ -n "${vboxnet_if}" ]
+if $autoVirtualBox
 then
-	VBoxManage hostonlyif remove "${vboxnet_if}"
-	echo "removed vboxnet_if=>${vboxnet_if}"
-fi
-unset -v vboxnet_if
+	. "${script_dir}/hard_off.bash"
 
+	hard_off
+	for i in "${!vm_name[@]}"
+	do
+		grep_count=$(VBoxManage list vms | { grep --count --fixed-strings "\"${vm_name[$i]}\"" || [ $? -eq 1 ]; })
+		if [ $grep_count -ne 0 ]
+		then
+			echo "destroy ${vm_name[$i]}"
+			VBoxManage unregistervm "${vm_name[$i]}" --delete
+		fi
+	done
+
+	# get name for hostonlyif
+	vboxnet_if="$(VBoxManage list hostonlyifs|
+		tr '\n' '§'|sed -nE "/^.*Name:[[:space:]]+([[:alnum:]]+)§GUID:[^§]+§DHCP:[^§]+§IPAddress:[[:space:]]+${vboxnet_hostip//./\.}§.*$/ s//\1/p")"
+	if [ -n "${vboxnet_if}" ]
+	then
+		VBoxManage hostonlyif remove "${vboxnet_if}"
+		echo "removed vboxnet_if=>${vboxnet_if}"
+	fi
+	unset -v vboxnet_if
+else
+	echo 'При автоматической установке здесь удаляются виртуалки и интерфейс админского компьютера во внутренней подсетке.'
+fi
+
+echo 'Удаляю автоматический сгенерённые конфигурационные файлы'
 [ -e "${ssh_known_hosts}" ] && rm "${ssh_known_hosts}"
 [ -e "${ssh_config}" ] && rm "${ssh_config}"
 [ -e "${hosts}" ] && rm "${hosts}"
+
 exit 0
