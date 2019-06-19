@@ -77,8 +77,13 @@ do
 		vm_ssh "$h" 'systemctl enable ntpd.service'
 		vm_ssh "$h" 'systemctl start ntpd.service'
 	else # other, but not witness
-		# PATH for PostgreSQL bin
-		vm_cp "$h" "${common_dir}/profile.sh" '/etc/profile.d/tuchanka.sh'
+		# какой-то идиот выставил этому файлу права на выполнение
+		vm_ssh "$h" 'chmod a-x /var/lib/pgsql/.bash_profile'
+		# настраиваю shell для postgres user
+		vm_ssh "$h" "cat >'${pgsql_dir}/.pgsql_profile'" <<-EOF
+			unset PGDATA
+			PATH="/usr/pgsql-${postgresql_version}/bin:\${PATH}"
+			EOF
 		# PostgreSQL passwords
 		vm_ssh "$h" 'umask 0177 && cat >~/.pgpass' <"${common_dir}/pgpass"
 		vm_cp2pgsql "$h" "${common_dir}/pgpass" "${pgsql_dir}/.pgpass"
@@ -159,7 +164,7 @@ do
 	pgdata="${pgsql_dir}/${config_name}" custom_conf="${config_name}.conf" restore_paf="${config_name}.paf" pacemaker_pcs="${config_name}.pcs"
 	restore_sh="restore${config_name#'krogan'}"
 	echo "Configure ${config_name}"
-	vm_ssh "$master" "su -l postgres -c \"pg_ctl init --pgdata='${pgdata}' --options='--locale=ru_RU.UTF-8 --lc-messages=en_US.UTF-8 --auth-local=peer --auth-host=scram-sha-256'\""
+	vm_ssh "$master" "su --login postgres -c \"pg_ctl init --pgdata='${pgdata}' --options='--locale=ru_RU.UTF-8 --lc-messages=en_US.UTF-8 --auth-local=peer --auth-host=scram-sha-256'\""
 	# pg_ident.conf pg_hba.conf postgresql.conf common for all databases
 	vm_ssh "$master" "cp -a '${pgdata}/postgresql.conf' '${pgdata}/postgresql.conf.original'"
 	vm_ssh "$master" "echo -e \"include='postgresql.conf.original'\ninclude_if_exists='../postgresql.conf'\ninclude_if_exists='../${custom_conf}'\" >|'${pgdata}/postgresql.conf'"

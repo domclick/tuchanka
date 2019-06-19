@@ -41,8 +41,8 @@ do
 	then
 		vm_ssh "$h" 'yum --assumeyes install corosync-qnetd'
 	else
-		vm_ssh "$h" 'yum --assumeyes install https://download.postgresql.org/pub/repos/yum/11/redhat/rhel-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm'
-		vm_ssh "$h" 'yum --assumeyes install postgresql11 postgresql11-server postgresql11-contrib pgcenter resource-agents-paf corosync-qdevice sbd awscli'
+		vm_ssh "$h" "yum --assumeyes install https://download.postgresql.org/pub/repos/yum/${postgresql_version}/redhat/rhel-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm"
+		vm_ssh "$h" "yum --assumeyes install postgresql${postgresql_version} postgresql${postgresql_version}-server postgresql${postgresql_version}-contrib pgcenter resource-agents-paf corosync-qdevice sbd awscli"
 	fi
 done
 
