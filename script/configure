@@ -142,7 +142,7 @@ do
 	# Нужен любой hostname из кластера для ssh доступа (настройка всех машин через одну)
 	h="${vm_hostname[${db_master[$k]}]}"
 	vm_ssh "$h" "pcs cluster auth ${vm_hostname[$Witness]} ${hostnames} -u hacluster -p '${hacluster_password}'"
-	vm_ssh "$h" "pcs cluster setup --name ${krogan} ${hostnames}"
+	vm_ssh "$h" "pcs cluster setup --name ${krogan} --encryption 1 ${hostnames}"
 	vm_ssh "$h" 'pcs stonith sbd enable'
 	# В redhat работают .... Включение sbd автоматичесий включает auto_tie_breaker, который конфликтует и не нужен в случае quorum device.
 	# Поэтому строчкой ниже workaround.
