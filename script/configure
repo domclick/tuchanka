@@ -40,6 +40,16 @@ do
 	# Как его настраивать, чтобы работал совместо с pacemaker не знаю
 	vm_ssh "$h" 'systemctl disable firewalld'
 	vm_ssh "$h" 'systemctl stop firewalld'
+	# Из-за ограничений VirtualBox пришлось сделать две подсетки:
+	# одна для работы кластера на eth0
+	# другая для выхода в Интернет через NAT на eth1 (default gw)
+	# Запрещаю доступ к рабочей подсетке на eth0 через подсеть для выхода в Интернет на eth1 (через default gw)
+	vm_ssh "$h" "cat >>'/etc/rc.local'" <<-EOF
+
+		# Added by tuchanka configure script
+		ip route add prohibit ${vboxnet_prefix}.0/24 protocol static metric 200
+		EOF
+	vm_ssh "$h" "chmod +x '/etc/rc.local'"
 	# for pacemaker
 	echo -e "${hacluster_password}\n${hacluster_password}" | vm_ssh "$h" 'passwd --stdin hacluster'
 	# pacemaker redhat client, REST daemon
@@ -142,7 +152,7 @@ do
 	# Нужен любой hostname из кластера для ssh доступа (настройка всех машин через одну)
 	h="${vm_hostname[${db_master[$k]}]}"
 	vm_ssh "$h" "pcs cluster auth ${vm_hostname[$Witness]} ${hostnames} -u hacluster -p '${hacluster_password}'"
-	vm_ssh "$h" "pcs cluster setup --name ${krogan} --encryption 1 ${hostnames}"
+	vm_ssh "$h" "pcs cluster setup --name ${krogan} --transport udp --encryption 1 ${hostnames}"
 	vm_ssh "$h" 'pcs stonith sbd enable'
 	# В redhat работают .... Включение sbd автоматичесий включает auto_tie_breaker, который конфликтует и не нужен в случае quorum device.
 	# Поэтому строчкой ниже workaround.

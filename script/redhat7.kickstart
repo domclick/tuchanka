@@ -42,9 +42,11 @@ timezone@@VBOX_COND_IS_RTC_USING_UTC@@ --utc@@VBOX_COND_END@@ @@VBOX_INSERT_TIME
 # Network information
 network --device=eth0 --onboot=on --bootproto=static --ip=@@VBOX_INSERT_USER_FULL_NAME_SH@@ --netmask=255.255.255.0 --hostname=@@VBOX_INSERT_HOSTNAME_FQDN_SH@@ --noipv6 --nodefroute --nodns --activate
 network --device=eth1 --onboot=on --bootproto=dhcp --noipv6 --activate
+# Also there is /etc/rc.local in the "configure" file
+# to disable routing to the eth0 subnet from the eth1 subnet default gw
 
 # System bootloader configuration
-bootloader --location=mbr --append="nomodeset crashkernel=auto rhgb quiet"
+bootloader --location=mbr --append="nomodeset crashkernel=auto net.ifnames=0 biosdevname=0"
 zerombr
 
 # Partition clearing information
