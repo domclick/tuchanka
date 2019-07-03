@@ -8,13 +8,16 @@ then
 		do
 			if is_vm_running "${vm_name[$i]}"
 			then
-				echo "Off ${vm_name[$i]}"
 				VBoxManage controlvm "${vm_name[$i]}" poweroff
-				while is_vm_running "${vm_name[$i]}"
-				do
-					sleep 1
-				done
 			fi
+		done
+		for i in "${!vm_name[@]}"
+		do
+			echo "Waiting Off of ${vm_name[$i]}"
+			while is_vm_running "${vm_name[$i]}"
+			do
+				sleep 1
+			done
 		done
 		sleep 5
 	}

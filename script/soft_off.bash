@@ -1,6 +1,7 @@
 # работает только если OS уже полностью загружена
 . "${script_dir}/is_function_absent.bash"
 . "${script_dir}/is_vm_running.bash"
+. "${script_dir}/vm_ssh.bash"
 if is_function_absent 'soft_off'
 then
 	function soft_off {
@@ -9,13 +10,17 @@ then
 		do
 			if is_vm_running "${vm_name[$i]}"
 			then
-				echo "Off ${vm_name[$i]}"
 				VBoxManage controlvm "${vm_name[$i]}" acpipowerbutton
-				while is_vm_running "${vm_name[$i]}"
-				do
-					sleep 1
-				done
+				sleep 1
 			fi
+		done
+		for i in "${!vm_name[@]}"
+		do
+			echo "Waiting Off of ${vm_name[$i]}"
+			while is_vm_running "${vm_name[$i]}"
+			do
+				sleep 1
+			done
 		done
 		sleep 5
 	}
