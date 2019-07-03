@@ -9,16 +9,13 @@ script_dir="$(dirname "${BASH_SOURCE[0]}")"
 
 if $autoVirtualBox
 then
-	. "${script_dir}/hard_off.bash"
 	. "${script_dir}/rollback.bash"
 	. "${script_dir}/start_vms.bash"
-	. "${script_dir}/soft_off.bash"
 	. "${script_dir}/snapshot.bash"
 fi
 
 if $autoVirtualBox
 then
-	hard_off
 	rollback 'create_vms'
 	start_vms
 else
@@ -48,7 +45,6 @@ done
 
 if $autoVirtualBox
 then
-	soft_off
 	snapshot 'install_soft' 'The snapshot was taken at the end of the "install_soft" script.'
 else
 	echo 'При автоматической установке здесь сохраняется snapshot с доустановленными пакетами.'

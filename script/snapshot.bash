@@ -1,9 +1,11 @@
 # $1 snapshot name
 # $2 snapshot description
 . "${script_dir}/is_function_absent.bash"
+. "${script_dir}/soft_off.bash"
 if is_function_absent 'snapshot'
 then
 	function snapshot {
+		soft_off
 		local snapshot_name="$1" snapshot_description="$2"
 		local grep_count i
 		for i in "${!vm_name[@]}"

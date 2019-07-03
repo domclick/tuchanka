@@ -37,7 +37,6 @@ fi
 
 if $autoVirtualBox
 then
-	. "${script_dir}/soft_off.bash"
 	. "${script_dir}/snapshot.bash"
 fi
 
@@ -150,7 +149,6 @@ unset -v ssh_key
 if $autoVirtualBox
 then
 	# Жду завершение выключения, делаю snapshot
-	soft_off
 	snapshot 'create_vms' 'The snapshot was taken at the end of the "create_vms" script.'
 else
 	echo 'При автоматической установке здесь сохраняется snapshot установленных линуксов.'

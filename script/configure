@@ -9,10 +9,8 @@ readonly script_dir="$(dirname "${BASH_SOURCE[0]}")"
 
 if $autoVirtualBox
 then
-	. "${script_dir}/hard_off.bash"
 	. "${script_dir}/rollback.bash"
 	. "${script_dir}/start_vms.bash"
-	. "${script_dir}/soft_off.bash"
 	. "${script_dir}/snapshot.bash"
 fi
 
@@ -20,7 +18,6 @@ readonly pgsql_dir='/var/lib/pgsql' # в ../common/postgresql.conf незави�
 
 if $autoVirtualBox
 then
-	hard_off
 	rollback 'install_soft'
 	start_vms
 else
@@ -230,7 +227,6 @@ done
 
 if $autoVirtualBox
 then
-	soft_off
 	snapshot 'configure' 'The snapshot was taken at the end of the "configure" script.'
 else
 	echo 'При автоматической установке здесь сохраняется snapshot с настроенным pacemaker.'

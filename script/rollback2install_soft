@@ -12,8 +12,6 @@ then
 	exit 1
 fi
 
-. "${script_dir}/hard_off.bash"
 . "${script_dir}/rollback.bash"
-hard_off
 rollback 'install_soft'
 exit 0

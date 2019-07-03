@@ -1,8 +1,10 @@
 # $1 snapshot name
 . "${script_dir}/is_function_absent.bash"
+. "${script_dir}/hard_off.bash"
 if is_function_absent 'rollback'
 then
 	function rollback {
+		hard_off
 		local i
 		for i in "${!vm_name[@]}"
 		do
