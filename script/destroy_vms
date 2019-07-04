@@ -4,7 +4,7 @@ set -o errexit -o noclobber -o nounset -o pipefail
 
 # get config
 script_dir="$(dirname "${BASH_SOURCE[0]}")"
-. "${script_dir}/config.bash"
+. "${script_dir}/load_config.bash"
 
 if $autoVirtualBox
 then
