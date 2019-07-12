@@ -102,3 +102,6 @@ chmod a+x /mnt/sysimage/root/vboxpostinstall.sh
 /bin/bash /mnt/sysimage/root/vboxpostinstall.sh --rhel
 umount /tmp/vboxcdrom
 %end
+
+%addon com_redhat_kdump --disable
+%end

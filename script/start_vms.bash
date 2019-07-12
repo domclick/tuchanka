@@ -15,12 +15,13 @@ then
 		done
 		for i in "${!vm_name[@]}"
 		do
-			echo "Waiting for ssh on ${vm_name[$i]}"
-			until vm_ssh "${vm_hostname[$i]}" 'true' 2>/dev/null
+			echo "Waiting for system on ${vm_name[$i]}"
+			until vm_ssh "${vm_hostname[$i]}" 'systemctl is-system-running' 2>/dev/null
 			do
 				sleep 1
 			done
 		done
+		sleep 5
 	}
 	readonly -f start_vms
 fi
