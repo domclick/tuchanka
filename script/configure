@@ -168,7 +168,7 @@ do
 	# config_name используется в именах конфигов, соотвествует имени float_ip соответствующего мастеру этой DB
 	config_name="${float_hostname[$k]}" pgport="${db_port[$k]}"
 	master="${vm_hostname[${db_master[$k]}]}"
-	pgdata="${pgsql_dir}/${config_name}" custom_conf="${config_name}.conf" restore_paf="${config_name}.paf" pacemaker_pcs="${config_name}.pcs"
+	pgdata="${pgsql_dir}/${config_name}" custom_conf="${config_name}.conf" restore_paf="${config_name}.paf" pacemaker_script="${config_name}"
 	restore_sh="restore${config_name#'krogan'}"
 	echo "Configure ${config_name}"
 	vm_ssh "$master" "su --login postgres -c \"pg_ctl init --pgdata='${pgdata}' --options='--locale=ru_RU.UTF-8 --lc-messages=en_US.UTF-8 --auth-local=peer --auth-host=scram-sha-256'\""
@@ -201,7 +201,7 @@ do
 	do
 		hostname="${vm_hostname[$h]}"
 		vm_ssh "$hostname" "su -l postgres -c \"pg_ctl --pgdata='${pgdata}' stop\""
-		vm_cp "$hostname" "${pcs_dir}/${pacemaker_pcs}" "${pacemaker_pcs}"
+		vm_cp "$hostname" "${pcs_dir}/${pacemaker_script}" "${pacemaker_script}"
 		vm_ssh "$hostname" "cat >'bin/${restore_sh}'" <<-EOF
 			#!/bin/sh
 			# Временно, потом надо будет переделать чтобы был с бэкапом старой копии в S3
@@ -214,7 +214,7 @@ do
 		vm_cp "$hostname" "${script_dir}/../${hostname}/restore" "bin/"
 	done
 	# список команд для pcs для создания ресурса DB в кластере pacemaker
-	vm_ssh "$master" ". '${pacemaker_pcs}'"
+	vm_ssh "$master" "./'${pacemaker_script}'"
 done
 
 # цикл по кластерам, завершение перед выключением

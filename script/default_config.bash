@@ -12,6 +12,8 @@
 readonly autoVirtualBox='true'
 #readonly autoVirtualBox='false'
 
+# Местоположение внутренних файлов
+readonly cib='/var/lib/pacemaker/cib/cib.xml'
 # Версия PostgeSQL, используется в качестве суффикса в URL, названиях пакетов, путях у этих пакетов
 readonly postgresql_version=11
 # Мне выделили 192.168.89/24 подсетку для экспериментов, будет использоваться для связи серверов внутри кластера:
