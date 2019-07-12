@@ -62,8 +62,6 @@ do
 		vm_ssh "$h" "sed -e '/^COROSYNC_QNETD_OPTIONS=\"\"$/s//COROSYNC_QNETD_OPTIONS=\"-S dpd_interval=1000\"/' -i '/etc/sysconfig/corosync-qnetd'"
 		vm_ssh "$h" 'pcs qdevice setup model net --enable --start'
 		# manual check of qdevice: pcs qdevice status net
-		# ntpdate setup
-		vm_ssh "$h" "sed -e '/^SYNC_HWCLOCK=no$/s//SYNC_HWCLOCK=yes/' -i '/etc/sysconfig/ntpdate'"
 		# ntpd setup
 		# witness is our backup ntp server, usefull for isolated testbed
 		vm_ssh "$h" "sed -e '/^\(server\)\s/s//#\1/' -i '/etc/ntp.conf'"
@@ -79,8 +77,6 @@ do
 			# orphan mode
 			tos orphan 10
 			EOF
-		vm_ssh "$h" 'systemctl enable ntpdate.service'
-		vm_ssh "$h" 'systemctl start ntpdate.service'
 		vm_ssh "$h" 'systemctl enable ntpd.service'
 		vm_ssh "$h" 'systemctl start ntpd.service'
 	else # other, but not witness
@@ -104,8 +100,6 @@ do
 		vm_ssh "$h" 'chmod 0755 bin/mon'
 		# psql user config
 		vm_cp "$h" "${common_dir}/psqlrc" '.psqlrc'
-		# ntpdate setup
-		vm_ssh "$h" "sed -e '/^SYNC_HWCLOCK=no$/s//SYNC_HWCLOCK=yes/' -i '/etc/sysconfig/ntpdate'"
 		# ntpd setup
 		vm_ssh "$h" "sed -e '/^\(server\)\s/s//#\1/' -i '/etc/ntp.conf'"
 		vm_ssh "$h" "cat >>'/etc/ntp.conf'" <<-EOF
@@ -130,8 +124,6 @@ do
 				vm_ssh "$h" "echo 'peer ${vm_hostname[$hhk]} xleave' >>'/etc/ntp.conf'"
 			fi
 		done
-		vm_ssh "$h" 'systemctl enable ntpdate.service'
-		vm_ssh "$h" 'systemctl start ntpdate.service'
 		vm_ssh "$h" 'systemctl enable ntpd.service'
 		vm_ssh "$h" 'systemctl start ntpd.service'
 	fi
