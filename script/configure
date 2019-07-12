@@ -142,6 +142,18 @@ do
 	h="${vm_hostname[${db_master[$k]}]}"
 	vm_ssh "$h" "pcs cluster auth ${vm_hostname[$Witness]} ${hostnames} -u hacluster -p '${hacluster_password}'"
 	vm_ssh "$h" "pcs cluster setup --name ${krogan} --transport udp --encryption 1 ${hostnames}"
+	# Иногда при работе кластера, в том числе при cluster start --all, возникает отказ в работе.
+	# Выглядит как CPU load 114, предполагаю, что при некоторых условиях pacemaker начинает
+	# бесконечно размножать процессы. Надеюсь эта опция поможет решить эту проблему.
+	# Не знаю, является ли эта проблема специфичной для VirtualBox или общая. 2 потому что на
+	# виртуалках два виртуальных ядра. В реальности должно быть разумное значиние, например количество ядер
+	# на сервере или около того. Поскольку устанавливать property можно только после поднятия кластера,
+	# а проблему появляется иногда при поднятии кластера, выставляю эту опцию еще до поднятия кластера,
+	# путем редактирования CIB файла напрямую.
+	for hh in ${hostnames}
+	do
+		vm_ssh "$hh" "pcs -f '${cib}' property set node-action-limit=2"
+	done
 	vm_ssh "$h" 'pcs stonith sbd enable'
 	# В redhat работают .... Включение sbd автоматичесий включает auto_tie_breaker, который конфликтует и не нужен в случае quorum device.
 	# Поэтому строчкой ниже workaround.
