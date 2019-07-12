@@ -1,1 +1,1 @@
-LC_NUMERIC=en_US.UTF-8 PGUSER='heartbeat' PGPASSWORD='ChangeMe' watch -n 0.1 --exec psql -h krogan2 heartbeat -c "update heartbeat set beat=now() returning beat"
+LC_NUMERIC=en_US.UTF-8 watch -n 0.1 --exec psql --dbname="postgresql://heartbeat:ChangeMe@krogan2/heartbeat?connect_timeout=2&application_name=heart2.sh&keepalives=1&keepalives_idle=1&keepalives_interval=1&keepalives_count=1&target_session_attrs=read-write" --command='update heartbeat set beat=now() returning beat'
