@@ -2,6 +2,7 @@
 . "${script_dir}/is_function_absent.bash"
 . "${script_dir}/is_vm_running.bash"
 . "${script_dir}/vm_ssh.bash"
+# Отключил распараллеливание отключение, т.к. при нем acpipowerbutton подвешивает виртуалки
 if is_function_absent 'soft_off'
 then
 	function soft_off {
@@ -12,15 +13,13 @@ then
 			then
 				VBoxManage controlvm "${vm_name[$i]}" acpipowerbutton
 				sleep 1
+				echo "Waiting Off of ${vm_name[$i]}"
+				while is_vm_running "${vm_name[$i]}"
+				do
+					sleep 1
+				done
 			fi
-		done
-		for i in "${!vm_name[@]}"
-		do
-			echo "Waiting Off of ${vm_name[$i]}"
-			while is_vm_running "${vm_name[$i]}"
-			do
-				sleep 1
-			done
+			sleep 1
 		done
 		sleep 5
 	}
