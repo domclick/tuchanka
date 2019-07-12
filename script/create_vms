@@ -113,10 +113,10 @@ then
 		# get host dir
 		vboxvm_dir="$(dirname "$(VBoxManage showvminfo "${vm_name[$i]}"|sed -nE '/^Config file:[[:space:]]+(\/.+\.vbox)$/ s//\1/p')")"
 		vboxvm_vdi="${vboxvm_dir}/${vm_name[$i]}.vdi"
-		VBoxManage storagectl "${vm_name[$i]}" --name 'SATA' --add sata --hostiocache off --bootable on
+		VBoxManage storagectl "${vm_name[$i]}" --name 'DiskController' --add scsi --hostiocache off --bootable on
 		VBoxManage createmedium disk --filename "${vboxvm_vdi}" --size $HDD_MiB
-		VBoxManage storageattach "${vm_name[$i]}" --storagectl 'SATA' --type hdd --nonrotational on --discard on --port 0 --device 0 --medium "${vboxvm_vdi}"
-		VBoxManage storageattach "${vm_name[$i]}" --storagectl 'SATA' --type dvddrive --port 1 --device 0 --medium "${dvd_iso}"
+		VBoxManage storageattach "${vm_name[$i]}" --storagectl 'DiskController' --type hdd --nonrotational on --discard on --port 0 --device 0 --medium "${vboxvm_vdi}"
+		VBoxManage storageattach "${vm_name[$i]}" --storagectl 'DiskController' --type dvddrive --port 1 --device 0 --medium "${dvd_iso}"
 		VBoxManage unattended install "${vm_name[$i]}" --iso="${dvd_iso}" --full-user-name="${vm_ip[$i]}" --locale='ru_RU' --time-zone='Europe/Moscow' --hostname="${vm_hostname[$i]}.tuchanka" --package-selection-adjustment='minimal' --script-template="${script_dir}/redhat7.kickstart" --post-install-command="mkdir -m 700 \"\${MY_TARGET}/root/.ssh\" && echo '$(cat "${ssh_public_key}")' >>\"\${MY_TARGET}/root/.ssh/authorized_keys\"" --start-vm='headless' --extra-install-kernel-parameters='net.ifnames=0 biosdevname=0 ks=cdrom:/ks.cfg'
 		echo "created ${vm_name[$i]}"
 	# VBoxManage иногда внезапно завершает работу :) Вставил задержку
