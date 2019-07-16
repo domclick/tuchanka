@@ -35,8 +35,7 @@ do
 	vm_cp "$h" "${common_dir}/watchdog.conf" '/etc/modules-load.d/watchdog.conf'
 	vm_ssh "$h" 'systemctl restart systemd-modules-load'
 	# Как его настраивать, чтобы работал совместо с pacemaker не знаю
-	vm_ssh "$h" 'systemctl disable firewalld'
-	vm_ssh "$h" 'systemctl stop firewalld'
+	vm_ssh "$h" 'systemctl disable --now firewalld --quiet'
 	# Из-за ограничений VirtualBox пришлось сделать две подсетки:
 	# одна для работы кластера на eth0
 	# другая для выхода в Интернет через NAT на eth1 (default gw)
@@ -50,8 +49,8 @@ do
 	# for pacemaker
 	echo -e "${hacluster_password}\n${hacluster_password}" | vm_ssh "$h" 'passwd --stdin hacluster'
 	# pacemaker redhat client, REST daemon
-	vm_ssh "$h" 'systemctl start pcsd.service'
-	vm_ssh "$h" 'systemctl enable pcsd.service'
+	# vm_ssh "$h" "sed -e '/^PCSD_DEBUG=false$/s//PCSD_DEBUG=true/' -i '/etc/sysconfig/pcsd'"
+	vm_ssh "$h" 'systemctl enable --now pcsd.service --quiet'
 	# bash
 	vm_ssh "$h" 'cat >>.bash_profile' <"${common_dir}/bash_profile"
 	vm_cp "$h" "${script_dir}/../${h}/bashrc_local" '.bashrc_local'
@@ -59,9 +58,6 @@ do
 	# PostgreSQL and Witness specific things
 	if [ "$h" = "${vm_hostname[${Witness}]}" ]
 	then # witness
-		vm_ssh "$h" "sed -e '/^COROSYNC_QNETD_OPTIONS=\"\"$/s//COROSYNC_QNETD_OPTIONS=\"-S dpd_interval=1000\"/' -i '/etc/sysconfig/corosync-qnetd'"
-		vm_ssh "$h" 'pcs qdevice setup model net --enable --start'
-		# manual check of qdevice: pcs qdevice status net
 		# ntpd setup
 		# witness is our backup ntp server, usefull for isolated testbed
 		vm_ssh "$h" "sed -e '/^\(server\)\s/s//#\1/' -i '/etc/ntp.conf'"
@@ -77,29 +73,12 @@ do
 			# orphan mode
 			tos orphan 10
 			EOF
-		vm_ssh "$h" 'systemctl enable ntpd.service'
-		vm_ssh "$h" 'systemctl start ntpd.service'
+		vm_ssh "$h" 'systemctl enable --now ntpd.service --quiet'
+		# отключил, вернулся на дефолтовые таймауты, возможно для виртуалок этот таймаут недостаточен
+		# vm_ssh "$h" "sed -e '/^COROSYNC_QNETD_OPTIONS=\"\"$/s//COROSYNC_QNETD_OPTIONS=\"-S dpd_interval=1000\"/' -i '/etc/sysconfig/corosync-qnetd'"
+		vm_ssh "$h" 'pcs qdevice setup model net --enable --start'
+		# manual check of qdevice: pcs qdevice status net
 	else # other, but not witness
-		# какой-то идиот выставил этому файлу права на выполнение
-		vm_ssh "$h" 'chmod a-x /var/lib/pgsql/.bash_profile'
-		# настраиваю shell для postgres user
-		vm_ssh "$h" "cat >'${pgsql_dir}/.pgsql_profile'" <<-EOF
-			unset PGDATA
-			PATH="/usr/pgsql-${postgresql_version}/bin:\${PATH}"
-			EOF
-		# PostgreSQL passwords
-		vm_ssh "$h" 'umask 0177 && cat >~/.pgpass' <"${common_dir}/pgpass"
-		vm_cp2pgsql "$h" "${common_dir}/pgpass" "${pgsql_dir}/.pgpass"
-		# common PostgreSQL configs
-		vm_cp2pgsql "$h" "${common_dir}/postgresql.conf" "${pgsql_dir}/postgresql.conf"
-		vm_cp2pgsql "$h" "${common_dir}/pg_ident.conf" "${pgsql_dir}/pg_ident.conf"
-		vm_cp2pgsql "$h" "${common_dir}/pg_hba.conf" "${pgsql_dir}/pg_hba.conf"
-		# pacemaker monitor script
-		vm_ssh "$h" 'mkdir -p bin'
-		vm_cp "$h" "${common_dir}/mon" 'bin/mon'
-		vm_ssh "$h" 'chmod 0755 bin/mon'
-		# psql user config
-		vm_cp "$h" "${common_dir}/psqlrc" '.psqlrc'
 		# ntpd setup
 		vm_ssh "$h" "sed -e '/^\(server\)\s/s//#\1/' -i '/etc/ntp.conf'"
 		vm_ssh "$h" "cat >>'/etc/ntp.conf'" <<-EOF
@@ -124,10 +103,30 @@ do
 				vm_ssh "$h" "echo 'peer ${vm_hostname[$hhk]} xleave' >>'/etc/ntp.conf'"
 			fi
 		done
-		vm_ssh "$h" 'systemctl enable ntpd.service'
-		vm_ssh "$h" 'systemctl start ntpd.service'
+		vm_ssh "$h" 'systemctl enable --now ntpd.service --quiet'
+		# какой-то идиот выставил этому файлу права на выполнение
+		vm_ssh "$h" 'chmod a-x /var/lib/pgsql/.bash_profile'
+		# настраиваю shell для postgres user
+		vm_ssh "$h" "cat >'${pgsql_dir}/.pgsql_profile'" <<-EOF
+			unset PGDATA
+			PATH="/usr/pgsql-${postgresql_version}/bin:\${PATH}"
+			EOF
+		# PostgreSQL passwords
+		vm_ssh "$h" 'umask 0177 && cat >~/.pgpass' <"${common_dir}/pgpass"
+		vm_cp2pgsql "$h" "${common_dir}/pgpass" "${pgsql_dir}/.pgpass"
+		# common PostgreSQL configs
+		vm_cp2pgsql "$h" "${common_dir}/postgresql.conf" "${pgsql_dir}/postgresql.conf"
+		vm_cp2pgsql "$h" "${common_dir}/pg_ident.conf" "${pgsql_dir}/pg_ident.conf"
+		vm_cp2pgsql "$h" "${common_dir}/pg_hba.conf" "${pgsql_dir}/pg_hba.conf"
+		# pacemaker monitor script
+		vm_ssh "$h" 'mkdir -p bin'
+		vm_cp "$h" "${common_dir}/mon" 'bin/mon'
+		vm_ssh "$h" 'chmod 0755 bin/mon'
+		# psql user config
+		vm_cp "$h" "${common_dir}/psqlrc" '.psqlrc'
 	fi
 done
+sleep 5
 # цикл по кластерам, первичная настройка
 for k in "${!krogan_cluster[@]}"
 do
@@ -143,7 +142,7 @@ do
 	vm_ssh "$h" "pcs cluster auth ${vm_hostname[$Witness]} ${hostnames} -u hacluster -p '${hacluster_password}'"
 
 	# --wait-for-all поставил, так как есть проблемы со стартом tuchanka2 (кластер из 4х виртуалок)
-	vm_ssh "$h" "pcs cluster setup --name ${krogan} --transport udp --encryption 1 ${hostnames} --wait_for_all 1"
+	vm_ssh "$h" "pcs cluster setup --wait --name ${krogan} --transport udp --encryption 1 ${hostnames} --wait_for_all 1"
 	# Иногда при работе кластера, в том числе при cluster start --all, возникает отказ в работе.
 	# Выглядит как CPU load 114, предполагаю, что при некоторых условиях pacemaker начинает
 	# бесконечно размножать процессы. Надеюсь эта опция поможет решить эту проблему.
@@ -160,8 +159,10 @@ do
 	# В redhat работают .... Включение sbd автоматичесий включает auto_tie_breaker, который конфликтует и не нужен в случае quorum device.
 	# Поэтому строчкой ниже workaround.
 	vm_ssh "$h" 'pcs quorum update auto_tie_breaker=0 --force'
-	vm_ssh "$h" 'pcs cluster start --all'
-	vm_ssh "$h" "pcs quorum device add sync_timeout=2000 timeout=1000 model net host='${vm_hostname[$Witness]}' algorithm=ffsplit"
+	vm_ssh "$h" 'pcs cluster start --all --wait'
+	# отключил, вернулся на дефолтовые таймауты, возможно для виртуалок этот таймаут недостаточен
+	# vm_ssh "$h" "pcs quorum device add sync_timeout=2000 timeout=1000 model net host='${vm_hostname[$Witness]}' algorithm=ffsplit"
+	vm_ssh "$h" "pcs quorum device add model net host='${vm_hostname[$Witness]}' algorithm=ffsplit"
 	# manual check: pcs quorum device status
 	vm_ssh "$h" 'pcs property set stonith-enabled=true'
 	# Должно быть примерно в 2 раза больше, чем SBD_WATCHDOG_TIMEOUT в /etc/sysconfig/sbd в виртуалке
@@ -177,14 +178,14 @@ do
 	pgdata="${pgsql_dir}/${config_name}" custom_conf="${config_name}.conf" restore_paf="${config_name}.paf" pacemaker_script="${config_name}"
 	restore_sh="restore${config_name#'krogan'}"
 	echo "Configure ${config_name}"
-	vm_ssh "$master" "su --login postgres -c \"pg_ctl init --pgdata='${pgdata}' --options='--locale=ru_RU.UTF-8 --lc-messages=en_US.UTF-8 --auth-local=peer --auth-host=scram-sha-256'\""
+	vm_ssh "$master" "su --login postgres -c \"pg_ctl init --wait --pgdata='${pgdata}' --options='--locale=ru_RU.UTF-8 --lc-messages=en_US.UTF-8 --auth-local=peer --auth-host=scram-sha-256'\""
 	# pg_ident.conf pg_hba.conf postgresql.conf common for all databases
 	vm_ssh "$master" "cp -a '${pgdata}/postgresql.conf' '${pgdata}/postgresql.conf.original'"
 	vm_ssh "$master" "echo -e \"include='postgresql.conf.original'\ninclude_if_exists='../postgresql.conf'\ninclude_if_exists='../${custom_conf}'\" >|'${pgdata}/postgresql.conf'"
 	vm_cp2pgsql "$master" "${script_dir}/../$master/${custom_conf}" "${pgsql_dir}/${custom_conf}"
 	vm_cp2pgsql "$master" "${script_dir}/../$master/${restore_paf}" "${pgsql_dir}/${restore_paf}"
 	# without -t is freezed here
-	vm_ssh -t "$master" "su -l postgres -c \"pg_ctl --options='--synchronous_standby_names=' --pgdata='${pgdata}' start\""
+	vm_ssh -t "$master" "su -l postgres -c \"pg_ctl start --wait --options='--synchronous_standby_names=' --pgdata='${pgdata}'\""
 	# создаю пользователя для репликации, пароль захардкожен, возможно в будущем будет другой способ аутентикации
 	vm_ssh "$master" "psql postgres postgres --port=${pgport} --command=\"create user replicant with password 'Nexus 6' replication\""
 	for s in ${db_slaves[$k]}
@@ -193,7 +194,7 @@ do
 		vm_cp2pgsql "$slave" "${script_dir}/../${slave}/${custom_conf}" "${pgsql_dir}/${custom_conf}"
 		vm_cp2pgsql "$slave" "${script_dir}/../${slave}/${restore_paf}" "${pgsql_dir}/${restore_paf}"
 		vm_ssh "$slave" "su -l postgres -c \"pg_basebackup --pgdata='${pgdata}' --dbname='host=${master} port=${pgport} user=replicant sslmode=disable' --progress --write-recovery-conf\""
-		vm_ssh -t "$slave" "su -l postgres -c \"pg_ctl --pgdata='${pgdata}' start\""
+		vm_ssh -t "$slave" "su -l postgres -c \"pg_ctl start --wait --pgdata='${pgdata}'\""
 		echo "Wait for starting replication on slave ${slave}"
 		replication_status=$(vm_ssh "$slave" "psql --quiet --tuples-only --expanded --port=${pgport} postgres postgres --command=\"select status from pg_stat_wal_receiver where sender_host='${master}'\"")
 		until [ "$replication_status" = 'status | streaming' ]
@@ -206,7 +207,7 @@ do
 	for h in ${db_master[$k]} ${db_slaves[$k]}
 	do
 		hostname="${vm_hostname[$h]}"
-		vm_ssh "$hostname" "su -l postgres -c \"pg_ctl --pgdata='${pgdata}' stop\""
+		vm_ssh "$hostname" "su -l postgres -c \"pg_ctl stop --wait --pgdata='${pgdata}'\""
 		vm_cp "$hostname" "${pcs_dir}/${pacemaker_script}" "${pacemaker_script}"
 		vm_ssh "$hostname" "cat >'bin/${restore_sh}'" <<-EOF
 			#!/bin/sh
@@ -228,7 +229,7 @@ for k in "${!krogan_cluster[@]}"
 do
 	# Нужен любой hostname из кластера для ssh доступа (настройка всех машин через одну)
 	h="${vm_hostname[${db_master[$k]}]}"
-	vm_ssh "$h" "pcs cluster stop --all"
+	vm_ssh "$h" "pcs cluster stop --all --wait"
 done
 
 if $autoVirtualBox

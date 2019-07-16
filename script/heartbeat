@@ -27,7 +27,7 @@ for k in "${!krogan_cluster[@]}"
 do
 	# Нужен любой hostname из кластера для ssh доступа
 	h="${vm_hostname[${db_master[$k]}]}"
-	vm_ssh "$h" 'pcs cluster start --all'
+	vm_ssh "$h" 'pcs cluster start --all --wait'
 done
 
 # И строго говоря надо сначала надо убедиться что postgresql встал и есть плавающий ip и работать через плавающий ip.
@@ -52,7 +52,7 @@ for k in "${!krogan_cluster[@]}"
 do
 	# Нужен любой hostname из кластера для ssh доступа
 	h="${vm_hostname[${db_master[$k]}]}"
-	vm_ssh "$h" "pcs cluster stop --all"
+	vm_ssh "$h" "pcs cluster stop --all --wait"
 done
 
 if $autoVirtualBox
