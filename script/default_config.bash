@@ -21,7 +21,7 @@ readonly vboxnet_prefix='192.168.89'
 # Для хоста назначаю 192.168.89.254:
 readonly vboxnet_hostip="${vboxnet_prefix}.254"
 # ОЗУ и диск
-readonly RAM_MiB=768 VRAM_MiB=9 HDD_MiB=4096
+readonly RAM_MiB=1024 VRAM_MiB=9 HDD_MiB=4096
 # files
 readonly common_dir="${script_dir}/../common" pcs_dir="${script_dir}/../pcs" heartbeat_dir="${script_dir}/../heartbeat"
 readonly ssh_config="${script_dir}/ssh_config" ssh_known_hosts="${script_dir}/ssh_known_hosts" hosts="${common_dir}/hosts"

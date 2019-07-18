@@ -13,5 +13,5 @@ then
 fi
 
 . "${script_dir}/rollback.bash"
-rollback 'configure'
+rollback 'install'
 exit 0

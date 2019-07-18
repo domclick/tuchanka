@@ -13,5 +13,5 @@ then
 fi
 
 . "${script_dir}/rollback.bash"
-rollback 'heartbeat'
+rollback 'setup'
 exit 0

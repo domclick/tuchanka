@@ -14,14 +14,15 @@ then
 	. "${script_dir}/snapshot.bash"
 fi
 
+# configure
 readonly pgsql_dir='/var/lib/pgsql' # в ../common/postgresql.conf независимо прописан путь /var/lib/pgsql
 
 if $autoVirtualBox
 then
-	rollback 'install_soft'
+	rollback 'install'
 	start_vms
 else
-	echo 'При автоматической установке здесь происходит откат к snapshot, который был создан после доустановки пакетов.'
+	echo 'При автоматической установке здесь происходит откат к snapshot, который был создан после установки пакетов.'
 fi
 
 # common things for all VM
@@ -224,19 +225,37 @@ do
 	vm_ssh "$master" "./'${pacemaker_script}'"
 done
 
+# heartbeat
+# И строго говоря надо сначала надо убедиться что postgresql встал и есть плавающий ip и работать через плавающий ip.
+# Но из-за проблем с отсутствием аутентификации (на данном этапе), работать буду через ssh и peer аутентификацию.
+# Цикл по DB
+for k in "${!db_master[@]}"
+do
+	pgport="${db_port[$k]}"
+	float_master="${float_hostname[$k]}"
+	master="${vm_hostname[${db_master[$k]}]}"
+	echo "Install heartbeat into ${master}"
+	echo "Waiting for ping ${float_master}"
+	while ! ping -q -c 1 "${float_master}"
+	do
+		sleep 1
+	done
+	vm_ssh "$master" "psql --port=${pgport} postgres postgres" <"${heartbeat_dir}/heartbeat.sql"
+done
+
 # цикл по кластерам, завершение перед выключением
 for k in "${!krogan_cluster[@]}"
 do
-	# Нужен любой hostname из кластера для ssh доступа (настройка всех машин через одну)
+	# Нужен любой hostname из кластера для ssh доступа
 	h="${vm_hostname[${db_master[$k]}]}"
 	vm_ssh "$h" "pcs cluster stop --all --wait"
 done
 
 if $autoVirtualBox
 then
-	snapshot 'configure' 'The snapshot was taken at the end of the "configure" script.'
+	snapshot 'setup' 'The snapshot was taken at the end of the "setup" script.'
 else
-	echo 'При автоматической установке здесь сохраняется snapshot с настроенным pacemaker.'
+	echo 'При автоматической установке здесь сохраняется snapshot с настроенным кластером и установленной БД "heartbeat".'
 fi
 
 exit 0
