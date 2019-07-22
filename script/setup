@@ -227,6 +227,9 @@ do
 		vm_ssh "$hostname" "chmod 755 'bin/${restore_sh}'"
 		vm_cp "$hostname" "${script_dir}/../${hostname}/restore" "bin/"
 	done
+	# При `pg_ctl stop --wait` pg_ctl ждет когда postgresql удалит свой pid файл.
+	# Есть подозрение, что этого недостаточно, поставил дополнительную задержку.
+	sleep 5
 	# список команд для pcs для создания ресурса DB в кластере pacemaker
 	vm_ssh "$master" "./'${pacemaker_script}'"
 done
@@ -256,6 +259,10 @@ do
 	h="${vm_hostname[${db_master[$k]}]}"
 	vm_ssh "$h" "pcs cluster stop --all --wait"
 done
+# При `pg_ctl stop --wait` pg_ctl ждет когда postgresql удалит свой pid файл.
+# Есть подозрение, что этого недостаточно, поставил дополнительную задержку.
+# Тесты подвердили полезность задежки после `pcs cluster stop --all --wait`
+sleep 5
 
 if $autoVirtualBox
 then
