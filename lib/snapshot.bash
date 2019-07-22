@@ -1,7 +1,7 @@
 # $1 snapshot name
 # $2 snapshot description
-. "${setup_dir}/is_function_absent.bash"
-. "${setup_dir}/soft_off.bash"
+. "${lib_dir}/is_function_absent.bash"
+. "${lib_dir}/soft_off.bash"
 if is_function_absent 'snapshot'
 then
 	function snapshot {

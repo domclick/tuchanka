@@ -4,10 +4,10 @@
 # проверка на то, что конфиг еще не был загружен
 if ! declare -p 'autoVirtualBox' &>/dev/null
 then
-	if [ -s "${setup_dir}/config.bash" ]
+	if [ -s "${root_dir}/config.bash" ]
 	then
-		. "${setup_dir}/config.bash"
+		. "${root_dir}/config.bash"
 	else
-		. "${setup_dir}/default_config.bash"
+		. "${root_dir}/default_config.bash"
 	fi
 fi

@@ -1,5 +1,5 @@
 # ssh for virtual machines
-. "${setup_dir}/is_function_absent.bash"
+. "${lib_dir}/is_function_absent.bash"
 if is_function_absent 'vm_ssh'
 then
 	function vm_ssh

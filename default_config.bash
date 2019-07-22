@@ -1,7 +1,7 @@
 # default_config.bash дефолтный конфиг из git, рабочий и достаточный
 # если нужно внести изменения, то скопировать default_config.bash в config.bash и его уже править
 
-# $setup_dir уже должен быть определен (как правило используется для подключения этого конфига)
+# $root_dir уже должен быть определен (как правило используется для подключения этого конфига)
 
 # Установка может идти в VirtualBox, в этом случае скрипты запускают
 # команды VirtualBox (такие как создание скиншотов файловой системы, запуск и остановка виртуалок)
@@ -12,7 +12,7 @@
 readonly autoVirtualBox='true'
 #readonly autoVirtualBox='false'
 
-# Местоположение внутренних файлов
+# Местоположение cib.xml в виртуалках
 readonly cib='/var/lib/pacemaker/cib/cib.xml'
 # Версия PostgeSQL, используется в качестве суффикса в URL, названиях пакетов, путях у этих пакетов
 readonly postgresql_version=11
@@ -20,12 +20,15 @@ readonly postgresql_version=11
 readonly vboxnet_prefix='192.168.89'
 # Для хоста назначаю 192.168.89.254:
 readonly vboxnet_hostip="${vboxnet_prefix}.254"
-# ОЗУ и диск
-readonly RAM_MiB=1024 VRAM_MiB=10 HDD_MiB=5120
-# files
-readonly common_dir="${setup_dir}/../common" pcs_dir="${setup_dir}/../pcs" heartbeat_dir="${setup_dir}/../heartbeat"
-readonly ssh_config="${setup_dir}/ssh_config" ssh_known_hosts="${setup_dir}/ssh_known_hosts" hosts="${common_dir}/hosts"
+# ОЗУ и диск, таймзона для виртуалок (в формате для unattended install)
+readonly RAM_MiB=1024 VRAM_MiB=10 HDD_MiB=5120 time_zone='Europe/Moscow'
+# really don't need to change in the test bed, password of hacluster unix user
 readonly hacluster_password='ChangeMe'
+# dirs
+readonly setup_dir="${root_dir}/setup" lib_dir="${root_dir}/lib"
+readonly common_dir="${root_dir}/common" pcs_dir="${root_dir}/pcs" heartbeat_dir="${root_dir}/heartbeat"
+# files
+readonly ssh_config="${root_dir}/ssh_config" ssh_known_hosts="${root_dir}/ssh_known_hosts" hosts="${root_dir}/hosts"
 
 Witness=251
 vm_ip[$Witness]="${vboxnet_prefix}.${Witness}"

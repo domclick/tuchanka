@@ -3,8 +3,8 @@
 set -o errexit -o noclobber -o nounset -o pipefail
 
 # get config
-readonly setup_dir="$(dirname "${BASH_SOURCE[0]}")"
-. "${setup_dir}/load_config.bash"
+readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
+. "${root_dir}/load_config.bash"
 
 if ! $autoVirtualBox
 then
@@ -12,6 +12,6 @@ then
 	exit 1
 fi
 
-. "${setup_dir}/rollback.bash"
+. "${lib_dir}/rollback.bash"
 rollback 'setup'
 exit 0
