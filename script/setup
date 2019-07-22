@@ -30,6 +30,12 @@ fi
 for hk in "${!vm_hostname[@]}"
 do
 	h="${vm_hostname[$hk]}"
+	# Когда срабатывает wachdog, последние записи в syslog не сбрасываются из кэша на диск и информация
+	# о причинах сработки watchdog пропадает. Поэтому выставляю sync в конфиге rsyslog.
+	# Это так же приведет к потере производительности и в продакшине делать, возможно, не следует.
+	# А может следует.
+	vm_ssh "$h" "sed -e '/^#\\\$ActionFileEnableSync on$/s//\\\$ActionFileEnableSync on/' -i '/etc/rsyslog.conf'"
+	vm_ssh "$h" "systemctl force-reload rsyslog"
 	# add hosts to /etc/hosts
 	vm_ssh "$h" 'cat >>/etc/hosts' <"${hosts}"
 	# softdog
