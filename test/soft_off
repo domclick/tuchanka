@@ -2,11 +2,11 @@
 # safe bash
 set -o errexit -o noclobber -o nounset -o pipefail
 
-readonly script_dir="$(dirname "${BASH_SOURCE[0]}")/../script"
+readonly setup_dir="$(dirname "${BASH_SOURCE[0]}")/../setup"
 
-. "${script_dir}/load_config.bash"
-. "${script_dir}/start_vms.bash"
-. "${script_dir}/soft_off.bash"
+. "${setup_dir}/load_config.bash"
+. "${setup_dir}/start_vms.bash"
+. "${setup_dir}/soft_off.bash"
 i=0
 echo "i=$i $(date +'%FT%T')" |tee 'test.log'
 while true

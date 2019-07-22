@@ -1,6 +1,6 @@
 # $1 snapshot name
-. "${script_dir}/is_function_absent.bash"
-. "${script_dir}/hard_off.bash"
+. "${setup_dir}/is_function_absent.bash"
+. "${setup_dir}/hard_off.bash"
 if is_function_absent 'rollback'
 then
 	function rollback {

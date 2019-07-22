@@ -1,5 +1,5 @@
 # $1 VM name to test
-. "${script_dir}/is_function_absent.bash"
+. "${setup_dir}/is_function_absent.bash"
 if is_function_absent 'is_vm_running'
 then
 	function is_vm_running {

@@ -3,15 +3,15 @@
 set -o errexit -o noclobber -o nounset -o pipefail -o xtrace
 
 # get config
-readonly script_dir="$(dirname "${BASH_SOURCE[0]}")"
-. "${script_dir}/load_config.bash"
-. "${script_dir}/vm_ssh.bash"
+readonly setup_dir="$(dirname "${BASH_SOURCE[0]}")"
+. "${setup_dir}/load_config.bash"
+. "${setup_dir}/vm_ssh.bash"
 
 if $autoVirtualBox
 then
-	. "${script_dir}/rollback.bash"
-	. "${script_dir}/start_vms.bash"
-	. "${script_dir}/snapshot.bash"
+	. "${setup_dir}/rollback.bash"
+	. "${setup_dir}/start_vms.bash"
+	. "${setup_dir}/snapshot.bash"
 fi
 
 # configure
@@ -60,7 +60,7 @@ do
 	vm_ssh "$h" 'systemctl enable --now pcsd.service --quiet'
 	# bash
 	vm_ssh "$h" 'cat >>.bash_profile' <"${common_dir}/bash_profile"
-	vm_cp "$h" "${script_dir}/../${h}/bashrc_local" '.bashrc_local'
+	vm_cp "$h" "${setup_dir}/../${h}/bashrc_local" '.bashrc_local'
 	vm_ssh "$h" 'cat >>.bashrc' <"${common_dir}/bashrc"
 	# PostgreSQL and Witness specific things
 	if [ "$h" = "${vm_hostname[${Witness}]}" ]
@@ -189,8 +189,8 @@ do
 	# pg_ident.conf pg_hba.conf postgresql.conf common for all databases
 	vm_ssh "$master" "cp -a '${pgdata}/postgresql.conf' '${pgdata}/postgresql.conf.original'"
 	vm_ssh "$master" "echo -e \"include='postgresql.conf.original'\ninclude_if_exists='../postgresql.conf'\ninclude_if_exists='../${custom_conf}'\" >|'${pgdata}/postgresql.conf'"
-	vm_cp2pgsql "$master" "${script_dir}/../$master/${custom_conf}" "${pgsql_dir}/${custom_conf}"
-	vm_cp2pgsql "$master" "${script_dir}/../$master/${restore_paf}" "${pgsql_dir}/${restore_paf}"
+	vm_cp2pgsql "$master" "${setup_dir}/../$master/${custom_conf}" "${pgsql_dir}/${custom_conf}"
+	vm_cp2pgsql "$master" "${setup_dir}/../$master/${restore_paf}" "${pgsql_dir}/${restore_paf}"
 	# without -t is freezed here
 	vm_ssh -t "$master" "su -l postgres -c \"pg_ctl start --wait --options='--synchronous_standby_names=' --pgdata='${pgdata}'\""
 	# создаю пользователя для репликации, пароль захардкожен, возможно в будущем будет другой способ аутентикации
@@ -198,8 +198,8 @@ do
 	for s in ${db_slaves[$k]}
 	do
 		slave="${vm_hostname[$s]}"
-		vm_cp2pgsql "$slave" "${script_dir}/../${slave}/${custom_conf}" "${pgsql_dir}/${custom_conf}"
-		vm_cp2pgsql "$slave" "${script_dir}/../${slave}/${restore_paf}" "${pgsql_dir}/${restore_paf}"
+		vm_cp2pgsql "$slave" "${setup_dir}/../${slave}/${custom_conf}" "${pgsql_dir}/${custom_conf}"
+		vm_cp2pgsql "$slave" "${setup_dir}/../${slave}/${restore_paf}" "${pgsql_dir}/${restore_paf}"
 		vm_ssh "$slave" "su -l postgres -c \"pg_basebackup --pgdata='${pgdata}' --dbname='host=${master} port=${pgport} user=replicant sslmode=disable' --progress --write-recovery-conf\""
 		vm_ssh -t "$slave" "su -l postgres -c \"pg_ctl start --wait --pgdata='${pgdata}'\""
 		echo "Wait for starting replication on slave ${slave}"
@@ -225,7 +225,7 @@ do
 			command su -l postgres -c "pg_basebackup --pgdata='${pgdata}' --dbname='host=${config_name} port=${pgport} user=replicant sslmode=disable' --progress"
 			EOF
 		vm_ssh "$hostname" "chmod 755 'bin/${restore_sh}'"
-		vm_cp "$hostname" "${script_dir}/../${hostname}/restore" "bin/"
+		vm_cp "$hostname" "${setup_dir}/../${hostname}/restore" "bin/"
 	done
 	# При `pg_ctl stop --wait` pg_ctl ждет когда postgresql удалит свой pid файл.
 	# Есть подозрение, что этого недостаточно, поставил дополнительную задержку.

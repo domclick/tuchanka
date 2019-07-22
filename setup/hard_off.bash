@@ -1,5 +1,5 @@
-. "${script_dir}/is_function_absent.bash"
-. "${script_dir}/is_vm_running.bash"
+. "${setup_dir}/is_function_absent.bash"
+. "${setup_dir}/is_vm_running.bash"
 if is_function_absent 'hard_off'
 then
 	function hard_off {

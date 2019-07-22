@@ -1,7 +1,7 @@
 # default_config.bash дефолтный конфиг из git, рабочий и достаточный
 # если нужно внести изменения, то скопировать default_config.bash в config.bash и его уже править
 
-# $script_dir уже должен быть определен (как правило используется для подключения этого конфига)
+# $setup_dir уже должен быть определен (как правило используется для подключения этого конфига)
 
 # Установка может идти в VirtualBox, в этом случае скрипты запускают
 # команды VirtualBox (такие как создание скиншотов файловой системы, запуск и остановка виртуалок)
@@ -23,8 +23,8 @@ readonly vboxnet_hostip="${vboxnet_prefix}.254"
 # ОЗУ и диск
 readonly RAM_MiB=1024 VRAM_MiB=10 HDD_MiB=5120
 # files
-readonly common_dir="${script_dir}/../common" pcs_dir="${script_dir}/../pcs" heartbeat_dir="${script_dir}/../heartbeat"
-readonly ssh_config="${script_dir}/ssh_config" ssh_known_hosts="${script_dir}/ssh_known_hosts" hosts="${common_dir}/hosts"
+readonly common_dir="${setup_dir}/../common" pcs_dir="${setup_dir}/../pcs" heartbeat_dir="${setup_dir}/../heartbeat"
+readonly ssh_config="${setup_dir}/ssh_config" ssh_known_hosts="${setup_dir}/ssh_known_hosts" hosts="${common_dir}/hosts"
 readonly hacluster_password='ChangeMe'
 
 Witness=251

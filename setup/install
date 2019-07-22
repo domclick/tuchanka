@@ -3,9 +3,9 @@
 set -o errexit -o noclobber -o nounset -o pipefail -o xtrace
 
 # get config
-readonly script_dir="$(dirname "${BASH_SOURCE[0]}")"
-. "${script_dir}/load_config.bash"
-. "${script_dir}/vm_ssh.bash"
+readonly setup_dir="$(dirname "${BASH_SOURCE[0]}")"
+. "${setup_dir}/load_config.bash"
+. "${setup_dir}/vm_ssh.bash"
 
 # create_vms
 if $autoVirtualBox
@@ -39,7 +39,7 @@ fi
 
 if $autoVirtualBox
 then
-	. "${script_dir}/snapshot.bash"
+	. "${setup_dir}/snapshot.bash"
 fi
 
 # generate config files for other scripts
@@ -110,7 +110,7 @@ then
 	do
 		echo "create ${vm_name[$i]}"
 		VBoxManage createvm --name "${vm_name[$i]}" --groups "${vm_groups[$i]}" --ostype RedHat_64 --register
-		VBoxManage modifyvm "${vm_name[$i]}" --description "${vm_desc[$i]}" --memory $RAM_MiB --vram=$VRAM_MiB --boot1 dvd --boot2 disk --boot3 none --boot4 none --rtcuseutc on --graphicscontroller vboxsvga --firmware bios --defaultfrontend headless --nic1 hostonly --nictype1 virtio --hostonlyadapter1 "${vboxnet_if}" --nic2 nat --nictype2 virtio --mouse usb --keyboard usb --audio none --cpus 2 --iconfile "${script_dir}/../krogan.png"
+		VBoxManage modifyvm "${vm_name[$i]}" --description "${vm_desc[$i]}" --memory $RAM_MiB --vram=$VRAM_MiB --boot1 dvd --boot2 disk --boot3 none --boot4 none --rtcuseutc on --graphicscontroller vboxsvga --firmware bios --defaultfrontend headless --nic1 hostonly --nictype1 virtio --hostonlyadapter1 "${vboxnet_if}" --nic2 nat --nictype2 virtio --mouse usb --keyboard usb --audio none --cpus 2 --iconfile "${setup_dir}/../krogan.png"
 		# get host dir
 		vboxvm_dir="$(dirname "$(VBoxManage showvminfo "${vm_name[$i]}"|sed -nE '/^Config file:[[:space:]]+(\/.+\.vbox)$/ s//\1/p')")"
 		vboxvm_vdi="${vboxvm_dir}/${vm_name[$i]}.vdi"
@@ -118,7 +118,7 @@ then
 		VBoxManage createmedium disk --filename "${vboxvm_vdi}" --size $HDD_MiB
 		VBoxManage storageattach "${vm_name[$i]}" --storagectl 'DiskController' --type hdd --port 0 --device 0 --medium "${vboxvm_vdi}"
 		VBoxManage storageattach "${vm_name[$i]}" --storagectl 'DiskController' --type dvddrive --port 1 --device 0 --medium "${dvd_iso}"
-		VBoxManage unattended install "${vm_name[$i]}" --iso="${dvd_iso}" --full-user-name="${vm_ip[$i]}" --locale='ru_RU' --time-zone='Europe/Moscow' --hostname="${vm_hostname[$i]}.tuchanka" --package-selection-adjustment='minimal' --script-template="${script_dir}/redhat7.kickstart" --post-install-command="mkdir -m 700 \"\${MY_TARGET}/root/.ssh\" && echo '$(cat "${ssh_public_key}")' >>\"\${MY_TARGET}/root/.ssh/authorized_keys\"" --start-vm='headless' --extra-install-kernel-parameters='net.ifnames=0 biosdevname=0 ks=cdrom:/ks.cfg'
+		VBoxManage unattended install "${vm_name[$i]}" --iso="${dvd_iso}" --full-user-name="${vm_ip[$i]}" --locale='ru_RU' --time-zone='Europe/Moscow' --hostname="${vm_hostname[$i]}.tuchanka" --package-selection-adjustment='minimal' --script-template="${setup_dir}/redhat7.kickstart" --post-install-command="mkdir -m 700 \"\${MY_TARGET}/root/.ssh\" && echo '$(cat "${ssh_public_key}")' >>\"\${MY_TARGET}/root/.ssh/authorized_keys\"" --start-vm='headless' --extra-install-kernel-parameters='net.ifnames=0 biosdevname=0 ks=cdrom:/ks.cfg'
 		echo "created ${vm_name[$i]}"
 		sleep 1
 	done

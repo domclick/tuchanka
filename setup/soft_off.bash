@@ -1,7 +1,7 @@
 # работает только если OS уже полностью загружена
-. "${script_dir}/is_function_absent.bash"
-. "${script_dir}/is_vm_running.bash"
-. "${script_dir}/vm_ssh.bash"
+. "${setup_dir}/is_function_absent.bash"
+. "${setup_dir}/is_vm_running.bash"
+. "${setup_dir}/vm_ssh.bash"
 if is_function_absent 'soft_off'
 then
 	function soft_off {

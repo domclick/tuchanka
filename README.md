@@ -20,7 +20,7 @@
 #### HAPgSQLStructure.key
 Картинки для презентации. Открывается в Keynote.app (презентации под MacOs).
 
-#### script/
+#### setup/
 Bash скрипты для создания и удаления виртуалок.
 
 #### pcs/
@@ -50,7 +50,7 @@ Bash скрипты для создания и удаления виртуало
 ## Создание виртуальный машин и установка пакетов
 Создаются виртуальные машины и устанавливаются пакеты командой:
 
-	script/install <redhat_installation_image.iso> <root_ssh_public_key.pub>
+	setup/install <redhat_installation_image.iso> <root_ssh_public_key.pub>
 
 Загрузочный диск должен быть от редхатоподобного дистрибутива 7й версии. Я использовал `CentOS-7-x86_64-Minimal-1810.iso`. Не должно быть **'** в публичном ключе (он там может быть только в комментариях). Скрипт делает:
 - Создает вспомогательные конфигурационные файлы (типа hosts, ssh\_config, etc), которые используются в дальнейших этапах.
@@ -145,7 +145,7 @@ Bash скрипты для создания и удаления виртуало
 		HashKnownHosts no
 		StrictHostKeyChecking yes
 		User root
-		UserKnownHostsFile /Users/!my_user!/prog/domclick/tuchanka/script/ssh_known_hosts
+		UserKnownHostsFile /Users/!my_user!/prog/domclick/tuchanka/setup/ssh_known_hosts
 
 В последнюю строку надо будет записать реальный путь к файлу (файл создается при первом запуске `install`).
 
