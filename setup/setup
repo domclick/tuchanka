@@ -105,7 +105,7 @@ do
 		# for all in the group, but not I
 		for hhk in "${!vm_hostname[@]}"
 		do
-			if [ $hhk -ne $hk -a "${vm_groups[$hhk]}" = "${vm_groups[$hk]}" ]
+			if [ $hhk -ne $hk -a "${vm_group[$hhk]}" = "${vm_group[$hk]}" ]
 			then
 				vm_ssh "$h" "echo 'peer ${vm_hostname[$hhk]} xleave' >>'/etc/ntp.conf'"
 			fi

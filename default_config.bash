@@ -34,66 +34,66 @@ Witness=251
 vm_ip[$Witness]="${vboxnet_prefix}.${Witness}"
 vm_name[$Witness]='Witness4Tuchanka'
 vm_hostname[$Witness]='witness'
-vm_groups[$Witness]='/Tuchanka'
+vm_group[$Witness]='/Tuchanka'
 vm_desc[$Witness]='Witness server for the Tuchanka cluster'
 
 Tuchanka0a=1
 vm_ip[$Tuchanka0a]="${vboxnet_prefix}.${Tuchanka0a}"
 vm_name[$Tuchanka0a]='Tuchanka0a'
 vm_hostname[$Tuchanka0a]='tuchanka0a'
-vm_groups[$Tuchanka0a]='/Tuchanka/Tuchanka0'
+vm_group[$Tuchanka0a]='/Tuchanka/Tuchanka0'
 vm_desc[$Tuchanka0a]='Tuchanka0a node of the Tuchanka0 cluster'
 
 Tuchanka0b=2
 vm_ip[$Tuchanka0b]="${vboxnet_prefix}.${Tuchanka0b}"
 vm_name[$Tuchanka0b]='Tuchanka0b'
 vm_hostname[$Tuchanka0b]='tuchanka0b'
-vm_groups[$Tuchanka0b]='/Tuchanka/Tuchanka0'
+vm_group[$Tuchanka0b]='/Tuchanka/Tuchanka0'
 vm_desc[$Tuchanka0b]='Tuchanka0b node of the Tuchanka0 cluster'
 
 Tuchanka1a=11
 vm_ip[$Tuchanka1a]="${vboxnet_prefix}.${Tuchanka1a}"
 vm_name[$Tuchanka1a]='Tuchanka1a'
 vm_hostname[$Tuchanka1a]='tuchanka1a'
-vm_groups[$Tuchanka1a]='/Tuchanka/Tuchanka1'
+vm_group[$Tuchanka1a]='/Tuchanka/Tuchanka1'
 vm_desc[$Tuchanka1a]='Tuchanka1a node of the Tuchanka1 cluster'
 
 Tuchanka1b=12
 vm_ip[$Tuchanka1b]="${vboxnet_prefix}.${Tuchanka1b}"
 vm_name[$Tuchanka1b]='Tuchanka1b'
 vm_hostname[$Tuchanka1b]='tuchanka1b'
-vm_groups[$Tuchanka1b]='/Tuchanka/Tuchanka1'
+vm_group[$Tuchanka1b]='/Tuchanka/Tuchanka1'
 vm_desc[$Tuchanka1b]='Tuchanka1b node of the Tuchanka1 cluster'
 
 Tuchanka2a=21
 vm_ip[$Tuchanka2a]="${vboxnet_prefix}.${Tuchanka2a}"
 vm_name[$Tuchanka2a]='Tuchanka2a'
 vm_hostname[$Tuchanka2a]='tuchanka2a'
-vm_groups[$Tuchanka2a]='/Tuchanka/Tuchanka2'
+vm_group[$Tuchanka2a]='/Tuchanka/Tuchanka2'
 vm_desc[$Tuchanka2a]='Tuchanka2a node of the Tuchanka2 cluster'
 
 Tuchanka2b=22
 vm_ip[$Tuchanka2b]="${vboxnet_prefix}.${Tuchanka2b}"
 vm_name[$Tuchanka2b]='Tuchanka2b'
 vm_hostname[$Tuchanka2b]='tuchanka2b'
-vm_groups[$Tuchanka2b]='/Tuchanka/Tuchanka2'
+vm_group[$Tuchanka2b]='/Tuchanka/Tuchanka2'
 vm_desc[$Tuchanka2b]='Tuchanka2b node of the Tuchanka2 cluster'
 
 Tuchanka2c=23
 vm_ip[$Tuchanka2c]="${vboxnet_prefix}.${Tuchanka2c}"
 vm_name[$Tuchanka2c]='Tuchanka2c'
 vm_hostname[$Tuchanka2c]='tuchanka2c'
-vm_groups[$Tuchanka2c]='/Tuchanka/Tuchanka2'
+vm_group[$Tuchanka2c]='/Tuchanka/Tuchanka2'
 vm_desc[$Tuchanka2c]='Tuchanka2c node of the Tuchanka2 cluster'
 
 Tuchanka2d=24
 vm_ip[$Tuchanka2d]="${vboxnet_prefix}.${Tuchanka2d}"
 vm_name[$Tuchanka2d]='Tuchanka2d'
 vm_hostname[$Tuchanka2d]='tuchanka2d'
-vm_groups[$Tuchanka2d]='/Tuchanka/Tuchanka2'
+vm_group[$Tuchanka2d]='/Tuchanka/Tuchanka2'
 vm_desc[$Tuchanka2d]='Tuchanka2d node of the Tuchanka2 cluster'
 readonly Witness Tuchanka0a Tuchanka0b Tuchanka1a Tuchanka1b Tuchanka2a Tuchanka2b Tuchanka2c Tuchanka2d
-readonly -a vm_name vm_ip vm_groups vm_desc
+readonly -a vm_name vm_ip vm_group vm_desc
 
 Krogan0a=101
 float_ip[$Krogan0a]="${vboxnet_prefix}.${Krogan0a}"

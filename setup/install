@@ -109,7 +109,7 @@ then
 	for i in "${!vm_name[@]}"
 	do
 		echo "create ${vm_name[$i]}"
-		VBoxManage createvm --name "${vm_name[$i]}" --groups "${vm_groups[$i]}" --ostype RedHat_64 --register
+		VBoxManage createvm --name "${vm_name[$i]}" --groups "${vm_group[$i]}" --ostype RedHat_64 --register
 		VBoxManage modifyvm "${vm_name[$i]}" --description "${vm_desc[$i]}" --memory $RAM_MiB --vram=$VRAM_MiB --boot1 dvd --boot2 disk --boot3 none --boot4 none --rtcuseutc on --graphicscontroller vboxsvga --firmware bios --defaultfrontend headless --nic1 hostonly --nictype1 virtio --hostonlyadapter1 "${vboxnet_if}" --nic2 nat --nictype2 virtio --mouse usb --keyboard usb --audio none --cpus 2 --iconfile "${root_dir}/krogan.png"
 		# get host dir
 		vboxvm_dir="$(dirname "$(VBoxManage showvminfo "${vm_name[$i]}"|sed -nE '/^Config file:[[:space:]]+(\/.+\.vbox)$/ s//\1/p')")"
