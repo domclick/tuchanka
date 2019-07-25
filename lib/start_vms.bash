@@ -7,7 +7,7 @@ then
 		local i
 		for i in "${!vm_name[@]}"
 		do
-			if ! is_vm_running "${vm_name[$i]}"
+			if ! is_vm_running "$i"
 			then
 				echo "Start ${vm_name[$i]}"
 				VBoxManage startvm "${vm_name[$i]}"

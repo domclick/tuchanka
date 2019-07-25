@@ -5,12 +5,12 @@
 if is_function_absent 'snapshot'
 then
 	function snapshot {
-		soft_off
 		local snapshot_name="$1" snapshot_description="$2"
-		local grep_count i
+		local i grep_count
+		soft_off
 		for i in "${!vm_name[@]}"
 		do
-			echo "Snapshot ${vm_name[$i]} as \"$snapshot_name\""
+			echo "Snapshot ${vm_name[$i]} as \"${snapshot_name}\""
 			# VBoxManage snapshot возвращает 1 если нет снэпшотов
 			# grep возвращает 1 если нет нахождений строк
 			# перехватываю ошибку и игнорирую.

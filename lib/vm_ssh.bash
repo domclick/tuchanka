@@ -4,6 +4,7 @@ if is_function_absent 'vm_ssh'
 then
 	function vm_ssh
 	{
+		# $@ передается ssh
 		ssh -F "${ssh_config}" -o "UserKnownHostsFile=${ssh_known_hosts}" "$@"
 	}
 	readonly -f vm_ssh
@@ -21,7 +22,7 @@ if is_function_absent 'vm_cp2pgsql'
 then
 	function vm_cp2pgsql {
 		local host="$1" from_path="$2" to_path="$3"
-		vm_ssh "${host}" "su postgres -c \"umask 0177 && cat >'${to_path}'\"" <"${from_path}"
+		vm_ssh "${host}" "su postgres -c \"umask 0177 && cat >|'${to_path}'\"" <"${from_path}"
 	}
 	readonly -f vm_cp2pgsql
 fi

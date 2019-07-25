@@ -8,7 +8,7 @@ then
 		local i
 		for i in "${!vm_name[@]}"
 		do
-			if is_vm_running "${vm_name[$i]}"
+			if is_vm_running "$i"
 			then
 				VBoxManage controlvm "${vm_name[$i]}" acpipowerbutton
 			fi
@@ -16,7 +16,7 @@ then
 		for i in "${!vm_name[@]}"
 		do
 			echo "Waiting Off of ${vm_name[$i]}"
-			while is_vm_running "${vm_name[$i]}"
+			while is_vm_running "$i"
 			do
 				sleep 1
 			done
