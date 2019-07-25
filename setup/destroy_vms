@@ -19,7 +19,7 @@ then
 			echo "destroy ${vm_name[$i]}"
 			VBoxManage unregistervm "${vm_name[$i]}" --delete
 		fi
-	done
+	done;unset i
 
 	# get name for hostonlyif
 	vboxnet_if="$(VBoxManage list hostonlyifs|
@@ -37,6 +37,6 @@ fi
 echo 'Удаляю автоматический сгенерённые конфигурационные файлы'
 [ -e "${ssh_known_hosts}" ] && rm "${ssh_known_hosts}"
 [ -e "${ssh_config}" ] && rm "${ssh_config}"
-[ -e "${hosts}" ] && rm "${hosts}"
+[ -e "${etc_hosts}" ] && rm "${etc_hosts}"
 
 exit 0

@@ -12,15 +12,15 @@ then
 				echo "Start ${vm_name[$i]}"
 				VBoxManage startvm "${vm_name[$i]}"
 			fi
-		done
+		done;unset i
 		for i in "${!vm_name[@]}"
 		do
 			echo "Waiting for system on ${vm_name[$i]}"
-			until vm_ssh "${vm_hostname[$i]}" 'systemctl is-system-running' 2>/dev/null
+			until vm_ssh "${vm_name[$i]}" 'systemctl is-system-running' 2>/dev/null
 			do
 				sleep 1
 			done
-		done
+		done;unset i
 		sleep 5
 	}
 	readonly -f start_vms

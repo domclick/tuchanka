@@ -1,4 +1,4 @@
 /ssh_config
 /ssh_known_hosts
-/hosts
+/etc_hosts
 /config.bash

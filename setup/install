@@ -52,9 +52,9 @@ fi
 ssh_hosts=''
 for i in "${!vm_name[@]}"
 do
-	echo -e "Host ${vm_hostname[$i]}\n\tHostName ${vm_ip[$i]}"
-	ssh_hosts="${ssh_hosts} ${vm_hostname[$i]}"
-done >"${ssh_config}"
+	echo -e "Host ${vm_name[$i]}\n\tHostName ${vm_ip[$i]}"
+	ssh_hosts="${ssh_hosts} ${vm_name[$i]}"
+done >"${ssh_config}";unset i
 cat <<EOF >>"${ssh_config}"
 Host ${ssh_hosts}
 	ForwardAgent yes
@@ -74,16 +74,16 @@ Host ${ssh_hosts}
 EOF
 unset ssh_hosts
 
-# generate hosts file
-for i in "${!vm_hostname[@]}"
+# generate etc_hosts file
+for i in "${!vm_name[@]}"
 do
-	echo -e "${vm_ip[$i]}\t${vm_hostname[$i]} ${vm_hostname[$i]}.tuchanka"
-done > "${hosts}"
-for i in "${!float_hostname[@]}"
+	echo -e "${vm_ip[$i]}\t${vm_name[$i]} ${vm_name[$i]}.tuchanka"
+done > "${etc_hosts}";unset i
+for i in "${!float_ip[@]}"
 do
-	echo -e "${float_ip[$i]}\t${float_hostname[$i]} ${float_hostname[$i]}.tuchanka"
-done >> "${hosts}"
-echo -e "${vboxnet_hostip}\tvirtualbox virtualbox.tuchanka" >> "${hosts}"
+	echo -e "${float_ip[$i]}\t${float_name[$i]} ${float_name[$i]}.tuchanka"
+done >> "${etc_hosts}";unset i
+echo -e "${vboxnet_hostip}\tvirtualbox virtualbox.tuchanka" >> "${etc_hosts}"
 
 if $autoVirtualBox
 then
@@ -118,10 +118,10 @@ then
 		VBoxManage createmedium disk --filename "${vboxvm_vdi}" --size $HDD_MiB
 		VBoxManage storageattach "${vm_name[$i]}" --storagectl 'DiskController' --type hdd --port 0 --device 0 --medium "${vboxvm_vdi}"
 		VBoxManage storageattach "${vm_name[$i]}" --storagectl 'DiskController' --type dvddrive --port 1 --device 0 --medium "${dvd_iso}"
-		VBoxManage unattended install "${vm_name[$i]}" --iso="${dvd_iso}" --full-user-name="${vm_ip[$i]}" --locale='ru_RU' --time-zone="${time_zone}" --hostname="${vm_hostname[$i]}.tuchanka" --package-selection-adjustment='minimal' --script-template="${setup_dir}/redhat7.kickstart" --post-install-command="mkdir -m 700 \"\${MY_TARGET}/root/.ssh\" && echo '$(cat "${ssh_public_key}")' >>\"\${MY_TARGET}/root/.ssh/authorized_keys\"" --start-vm='headless' --extra-install-kernel-parameters='net.ifnames=0 biosdevname=0 ks=cdrom:/ks.cfg'
+		VBoxManage unattended install "${vm_name[$i]}" --iso="${dvd_iso}" --full-user-name="${vm_ip[$i]}" --locale='ru_RU' --time-zone="${time_zone}" --hostname="${vm_name[$i]}.tuchanka" --package-selection-adjustment='minimal' --script-template="${setup_dir}/redhat7.kickstart" --post-install-command="mkdir -m 700 \"\${MY_TARGET}/root/.ssh\" && echo '$(cat "${ssh_public_key}")' >>\"\${MY_TARGET}/root/.ssh/authorized_keys\"" --start-vm='headless' --extra-install-kernel-parameters='net.ifnames=0 biosdevname=0 ks=cdrom:/ks.cfg'
 		echo "created ${vm_name[$i]}"
 		sleep 1
-	done
+	done;unset i
 else
 	echo 'При автоматической установке создается интерфейс админского компьютера во внутренней подсетке кластера.'
 	echo 'Создаются виртуалки, на них устанавливается CentOS с предварительной настройкой в инсталляторе.'
@@ -145,12 +145,12 @@ do
 	done
 	echo "${ssh_key}" >>"${ssh_known_hosts}"
 	# kdump отключен в kickstart файле, выключаю сервис, чтобы systemctl is-system-runnig корректно работал
-	vm_ssh "${vm_hostname[$i]}" 'systemctl disable kdump.service --quiet'
-done
+	vm_ssh "${vm_name[$i]}" 'systemctl disable kdump.service --quiet'
+done;unset i
 unset -v ssh_key
 
 #install_soft
-for h in "${vm_hostname[@]}"
+for h in "${vm_name[@]}"
 do
 	echo "Install soft to $h"
 	vm_ssh "$h" 'localectl set-locale LANG=ru_RU.UTF-8 LC_MESSAGES=en_US.UTF-8 LANGUAGE=en'
@@ -162,14 +162,14 @@ do
 	vm_ssh "$h" 'yum --assumeyes erase chrony'
 	vm_ssh "$h" 'yum --assumeyes install http://repo.zabbix.com/zabbix/4.0/rhel/7/x86_64/zabbix-release-4.0-1.el7.noarch.rpm'
 	vm_ssh "$h" 'yum --assumeyes install zabbix-agent'
-	if [ "$h" = "${vm_hostname[${Witness}]}" ]
+	if [ "$h" = "${vm_name[${Witness}]}" ]
 	then
 		vm_ssh "$h" 'yum --assumeyes install corosync-qnetd'
 	else
 		vm_ssh "$h" "yum --assumeyes install https://download.postgresql.org/pub/repos/yum/${postgresql_version}/redhat/rhel-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm"
 		vm_ssh "$h" "yum --assumeyes install postgresql${postgresql_version} postgresql${postgresql_version}-server postgresql${postgresql_version}-contrib pgcenter resource-agents-paf corosync-qdevice sbd awscli"
 	fi
-done
+done;unset h
 
 if $autoVirtualBox
 then

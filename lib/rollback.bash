@@ -10,7 +10,7 @@ then
 		do
 			echo "Rollback ${vm_name[$i]} to \"${1}\""
 			VBoxManage snapshot "${vm_name[$i]}" restore "${1}"
-		done
+		done;unset i
 	}
 	readonly -f rollback
 fi

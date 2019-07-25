@@ -12,7 +12,7 @@ then
 			then
 				VBoxManage controlvm "${vm_name[$i]}" acpipowerbutton
 			fi
-		done
+		done;unset i
 		for i in "${!vm_name[@]}"
 		do
 			echo "Waiting Off of ${vm_name[$i]}"
@@ -20,7 +20,7 @@ then
 			do
 				sleep 1
 			done
-		done
+		done;unset i
 		sleep 5
 	}
 	readonly -f soft_off

@@ -20,7 +20,7 @@ then
 				VBoxManage snapshot "${vm_name[$i]}" delete "$snapshot_name"
 			fi
 			VBoxManage snapshot "${vm_name[$i]}" take "$snapshot_name" --description "$snapshot_description"
-		done
+		done;unset i
 	}
 	readonly -f snapshot
 fi

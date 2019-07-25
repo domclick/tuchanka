@@ -18,26 +18,22 @@ do
 	# Если не откатывать, то со временем переполняются винчестеры :)
 	rollback 'setup'
 	start_vms
-	for k in "${!krogan_cluster[@]}"
+	for i in "${!cluster_name[@]}"
 	do
-		# Нужен любой hostname из кластера для ssh доступа
-		h="${vm_hostname[${db_master[$k]}]}"
-		vm_ssh "$h" "pcs --debug cluster start --all --wait"
-	done
-	for h in "${float_hostname[@]}"
+		vm_ssh "${vm_name[$i]}" "pcs --debug cluster start --all --wait"
+	done;unset i
+	for h in "${float_name[@]}"
 	do
 		echo "Waiting for ping ${h}"
-		while ! ping -q -c 1 "${h}"
+		while ! ping -q -c 1 "$h"
 		do
 			sleep 5
 		done
-	done
-	for k in "${!krogan_cluster[@]}"
+	done;unset h
+	for i in "${!cluster_name[@]}"
 	do
-		# Нужен любой hostname из кластера для ssh доступа
-		h="${vm_hostname[${db_master[$k]}]}"
-		vm_ssh "$h" "pcs --debug cluster stop --all --wait"
-	done
+		vm_ssh "${vm_name[$i]}" "pcs --debug cluster stop --all --wait"
+	done;unset i
 	sleep 5
 	soft_off
 done
