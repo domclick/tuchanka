@@ -194,7 +194,7 @@ do
 	# without -t is freezed here
 	vm_ssh -t "$m" "su -l postgres -c \"pg_ctl start --wait --options='--synchronous_standby_names=' --pgdata='${pgdata}'\""
 	# создаю пользователя для репликации, пароль захардкожен, возможно в будущем будет другой способ аутентикации
-	vm_ssh "$m" "psql postgres postgres --port=${pgport} --command=\"create user replicant with password 'Nexus 6' replication\""
+	vm_ssh "$m" "psql postgres postgres --no-psqlrc --port=${pgport} --command=\"create user replicant with password 'Nexus 6' replication\""
 	for h in ${db_setup_slaves[$i]}
 	do
 		vm_cp2pgsql "$h" "${root_dir}/${h}/${custom_conf}" "${pgsql_dir}/${custom_conf}"
@@ -202,11 +202,11 @@ do
 		vm_ssh "$h" "su -l postgres -c \"pg_basebackup --pgdata='${pgdata}' --dbname='host=${m} port=${pgport} user=replicant sslmode=disable' --progress --write-recovery-conf\""
 		vm_ssh -t "$h" "su -l postgres -c \"pg_ctl start --wait --pgdata='${pgdata}'\""
 		echo "Wait for starting replication on slave $h"
-		replication_status=$(vm_ssh "$h" "psql --quiet --tuples-only --expanded --port=${pgport} postgres postgres --command=\"select status from pg_stat_wal_receiver where sender_host='${m}'\"")
+		replication_status=$(vm_ssh "$h" "psql --no-psqlrc --quiet --tuples-only --expanded --port=${pgport} postgres postgres --command=\"select status from pg_stat_wal_receiver where sender_host='${m}'\"")
 		until [ "$replication_status" = 'status | streaming' ]
 		do
 			sleep 1
-			replication_status=$(vm_ssh "$h" "psql --quiet --tuples-only --expanded --port=${pgport} postgres postgres --command=\"select status from pg_stat_wal_receiver where sender_host='${m}'\"")
+			replication_status=$(vm_ssh "$h" "psql --no-psqlrc --quiet --tuples-only --expanded --port=${pgport} postgres postgres --command=\"select status from pg_stat_wal_receiver where sender_host='${m}'\"")
 		done
 	done;unset h
 	# now stoping, master must be first
@@ -247,7 +247,7 @@ do
 	do
 		sleep 5
 	done
-	vm_ssh "$master" "psql --port=${pgport} postgres postgres" <"${heartbeat_dir}/heartbeat.sql"
+	vm_ssh "$master" "psql --no-psqlrc --port=${pgport} postgres postgres" <"${heartbeat_dir}/heartbeat.sql"
 done;unset i
 
 # цикл по кластерам, завершение перед выключением
