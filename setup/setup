@@ -205,7 +205,7 @@ do
 		replication_status=$(vm_ssh "$h" "psql --no-psqlrc --quiet --tuples-only --expanded --port=${pgport} postgres postgres --command=\"select status from pg_stat_wal_receiver where sender_host='${m}'\"")
 		until [ "$replication_status" = 'status | streaming' ]
 		do
-			sleep 1
+			sleep 5
 			replication_status=$(vm_ssh "$h" "psql --no-psqlrc --quiet --tuples-only --expanded --port=${pgport} postgres postgres --command=\"select status from pg_stat_wal_receiver where sender_host='${m}'\"")
 		done
 	done;unset h

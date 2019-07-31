@@ -16,7 +16,7 @@ then
 			echo "Waiting Off of $h"
 			while is_vm_running "$h"
 			do
-				sleep 1
+				sleep 5
 			done
 		done;unset h
 		sleep 5

@@ -18,7 +18,7 @@ then
 			echo "Waiting for system on $h"
 			until vm_ssh "$h" 'systemctl is-system-running' 2>/dev/null
 			do
-				sleep 1
+				sleep 5
 			done
 		done;unset h
 		sleep 5
