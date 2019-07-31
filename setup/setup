@@ -6,6 +6,7 @@ set -o errexit -o noclobber -o nounset -o pipefail -o xtrace
 readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 . "${root_dir}/load_config.bash"
 . "${lib_dir}/vm_ssh.bash"
+. "${lib_dir}/wait_healthy.bash"
 
 if $autoVirtualBox
 then
@@ -246,6 +247,11 @@ do
 	vm_ssh "$master" "psql --no-psqlrc --port=${pgport} postgres postgres" <"${heartbeat_dir}/heartbeat.sql"
 done;unset i
 
+# Проверка работоспособности для дополнительной уверенности (используется heatbeat DB)
+for i in "${!cluster_name[@]}"
+do
+	wait_healthy $i
+done;unset i
 # цикл по кластерам, завершение перед выключением
 for i in "${!cluster_name[@]}"
 do
