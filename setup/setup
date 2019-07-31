@@ -81,8 +81,6 @@ vm_ssh "$h" "cat >>'/etc/ntp.conf'" <<-EOF
 	tos orphan 10
 	EOF
 vm_ssh "$h" 'systemctl enable --now ntpd.service --quiet'
-# отключил, вернулся на дефолтовые таймауты, возможно для виртуалок этот таймаут недостаточен
-# vm_ssh "$h" "sed -e '/^COROSYNC_QNETD_OPTIONS=\"\"$/s//COROSYNC_QNETD_OPTIONS=\"-S dpd_interval=1000\"/' -i '/etc/sysconfig/corosync-qnetd'"
 vm_ssh "$h" 'pcs qdevice setup model net --enable --start'
 # manual check of qdevice: pcs qdevice status net
 
@@ -167,8 +165,6 @@ do
 	# Поэтому строчкой ниже workaround.
 	vm_ssh "$h" 'pcs quorum update auto_tie_breaker=0 --force'
 	vm_ssh "$h" 'pcs cluster start --all --wait'
-	# отключил, вернулся на дефолтовые таймауты, возможно для виртуалок этот таймаут недостаточен
-	# vm_ssh "$h" "pcs quorum device add sync_timeout=2000 timeout=1000 model net host='${vm_name[$Witness]}' algorithm=ffsplit"
 	vm_ssh "$h" "pcs quorum device add model net host=${vm_name[$Witness]} algorithm=ffsplit"
 	# manual check: pcs quorum device status
 	vm_ssh "$h" 'pcs property set stonith-enabled=true'
@@ -232,7 +228,7 @@ do
 	vm_ssh "$m" "./'${pacemaker_script}'"
 done;unset i
 
-# heartbeat
+# heartbeat DB
 # И строго говоря надо сначала надо убедиться что postgresql встал и есть плавающий ip и работать через плавающий ip.
 # Но из-за проблем с отсутствием аутентификации (на данном этапе), работать буду через ssh и peer аутентификацию.
 # Цикл по DB
