@@ -1,2 +1,9 @@
-#!/bin/sh
-restore0b && restore0a && pcs cluster start && sleep 10 && pcs resource cleanup
+#!/bin/bash
+# safe bash
+set -o errexit -o noclobber -o nounset -o pipefail -o xtrace
+
+/root/bin/restore0b
+/root/bin/restore0a
+pcs cluster start --wait
+sleep 5
+pcs resource cleanup
