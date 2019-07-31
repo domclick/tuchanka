@@ -5,22 +5,22 @@
 if is_function_absent 'soft_off'
 then
 	function soft_off {
-		local i
-		for i in "${!vm_name[@]}"
+		local h
+		for h in "${vm_name[@]}"
 		do
-			if is_vm_running "$i"
+			if is_vm_running "$h"
 			then
-				VBoxManage controlvm "${vm_name[$i]}" acpipowerbutton
+				VBoxManage controlvm "$h" acpipowerbutton
 			fi
-		done;unset i
-		for i in "${!vm_name[@]}"
+		done;unset h
+		for h in "${vm_name[@]}"
 		do
-			echo "Waiting Off of ${vm_name[$i]}"
-			while is_vm_running "$i"
+			echo "Waiting Off of $h"
+			while is_vm_running "$h"
 			do
 				sleep 1
 			done
-		done;unset i
+		done;unset h
 		sleep 5
 	}
 	readonly -f soft_off

@@ -4,23 +4,23 @@
 if is_function_absent 'start_vms'
 then
 	function start_vms {
-		local i
-		for i in "${!vm_name[@]}"
+		local h
+		for h in "${vm_name[@]}"
 		do
-			if ! is_vm_running "$i"
+			if ! is_vm_running "$h"
 			then
-				echo "Start ${vm_name[$i]}"
-				VBoxManage startvm "${vm_name[$i]}"
+				echo "Start $h"
+				VBoxManage startvm "$h"
 			fi
-		done;unset i
-		for i in "${!vm_name[@]}"
+		done;unset h
+		for h in "${vm_name[@]}"
 		do
-			echo "Waiting for system on ${vm_name[$i]}"
-			until vm_ssh "${vm_name[$i]}" 'systemctl is-system-running' 2>/dev/null
+			echo "Waiting for system on $h"
+			until vm_ssh "$h" 'systemctl is-system-running' 2>/dev/null
 			do
 				sleep 1
 			done
-		done;unset i
+		done;unset h
 		sleep 5
 	}
 	readonly -f start_vms
