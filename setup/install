@@ -62,13 +62,13 @@ Host ${ssh_hosts}
 	ForwardX11 no
 	AddKeysToAgent yes
 	AddressFamily inet
-	BatchMode yes
+	BatchMode no
 	BindAddress ${vboxnet_hostip}
 	CanonicalizeHostname no
 	CheckHostIP yes
 	Compression no
 	HashKnownHosts no
-	LogLevel QUIET
+	LogLevel ERROR
 	RequestTTY no
 	StrictHostKeyChecking yes
 	User root
