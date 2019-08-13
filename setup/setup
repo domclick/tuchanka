@@ -212,7 +212,10 @@ do
 		vm_ssh "$h" "su -l postgres -c \"pg_ctl stop --wait --pgdata='${pgdata}'\""
 		vm_cp "$h" "${pcs_dir}/${pacemaker_script}" "${pacemaker_script}"
 		vm_ssh "$h" "cat >'bin/${restore_sh}'" <<-EOF
-			#!/bin/sh
+			#!/bin/bash
+			# safe bash
+			set -o errexit -o noclobber -o nounset -o pipefail -o xtrace
+
 			# Временно, потом надо будет переделать чтобы был с бэкапом старой копии в S3
 			command rm -r '${pgdata}'
 			# Если бэкапить таким образом, заканчивается место в виртуалках
