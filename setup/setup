@@ -146,9 +146,7 @@ do
 	# Нужен любой hostname из кластера для ssh доступа (настройка всех машин через одну)
 	h="${vm_name[$i]}"
 	vm_ssh "$h" "pcs cluster auth ${vm_name[$Witness]} ${cluster_vms[$i]} -u hacluster -p '${hacluster_password}'"
-	# --wait-for-all поставил, так как есть проблемы со стартом tuchanka2 (кластер из 4х виртуалок)
-	# возможно в продакшине не нужен, но на виртуалках в макбуке так работает стабильнее
-	vm_ssh "$h" "pcs cluster setup --wait --name ${cluster_name[$i]} --transport udp --encryption 1 --wait_for_all 1 ${cluster_vms[$i]}"
+	vm_ssh "$h" "pcs cluster setup --wait --name ${cluster_name[$i]} --transport udp --encryption 1 ${cluster_vms[$i]}"
 	# Иногда при работе кластера, в том числе при cluster start --all, возникает отказ в работе.
 	# Выглядит как CPU load 114, предполагаю, что при некоторых условиях pacemaker начинает
 	# бесконечно размножать процессы. Надеюсь эта опция поможет решить эту проблему.
@@ -166,7 +164,9 @@ do
 	# Поэтому строчкой ниже workaround.
 	vm_ssh "$h" 'pcs quorum update auto_tie_breaker=0 --force'
 	vm_ssh "$h" 'pcs cluster start --all --wait'
-	vm_ssh "$h" "pcs quorum device add model net host=${vm_name[$Witness]} algorithm=ffsplit"
+	# the sync_timeout must be at least 4 times greater, then timeout/dpd_interval
+	# explanation https://lists.clusterlabs.org/pipermail/users/2019-August/026145.html
+	vm_ssh "$h" "pcs quorum device add sync_timeout=40000 model net host='${vm_name[$Witness]}' algorithm=ffsplit"
 	# manual check: pcs quorum device status
 	vm_ssh "$h" 'pcs property set stonith-enabled=true'
 	# Должно быть примерно в 2 раза больше, чем SBD_WATCHDOG_TIMEOUT в /etc/sysconfig/sbd в виртуалке
