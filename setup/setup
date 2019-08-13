@@ -216,8 +216,11 @@ do
 			# safe bash
 			set -o errexit -o noclobber -o nounset -o pipefail -o xtrace
 
+			# postgres must not be running
+			command su -l postgres -c "! pg_ctl --pgdata='${pgdata}' status"
 			# Временно, потом надо будет переделать чтобы был с бэкапом старой копии в S3
-			command rm -r '${pgdata}'
+			command rm -rf '${pgdata}'
+			command rm -f '/tmp/.s.PGSQL.${pgport}.lock'
 			# Если бэкапить таким образом, заканчивается место в виртуалках
 			#command mv '${pgdata}' "${pgdata}.\$(date --iso-8601=seconds)"
 			command su -l postgres -c "pg_basebackup --pgdata='${pgdata}' --dbname='host=${config_name} port=${pgport} user=replicant sslmode=disable' --progress"
