@@ -1,0 +1,15 @@
+#!/bin/bash
+# safe bash
+set -o errexit -o noclobber -o nounset -o pipefail -o xtrace
+
+readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
+. "${root_dir}/load_config.bash"
+
+. "${lib_dir}/rollback.bash"
+. "${lib_dir}/tick.bash"
+
+while true
+do
+	tick+
+	rollback 'setup'
+done
