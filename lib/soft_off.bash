@@ -11,6 +11,7 @@ then
 			if is_vm_running "$h"
 			then
 				VBoxManage controlvm "$h" acpipowerbutton
+				sleep 1
 			fi
 		done;unset h
 		for h in "${vm_name[@]}"
