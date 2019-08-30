@@ -24,9 +24,9 @@ then
 			slaves="${slaves#,}"
 			if [ -n "$slaves" ]
 			then
-				until test 't' = "$(psql --no-align --quiet --tuples-only --no-psqlrc \
+				until test "$(psql --no-align --quiet --tuples-only --no-psqlrc \
 					--dbname="postgresql://heartbeat:ChangeMe@${slaves}/heartbeat?connect_timeout=2&application_name=wait_ready.bash&keepalives=1&keepalives_idle=1&keepalives_interval=1&keepalives_count=1&target_session_attrs=any" \
-					--command="select beat>='${date}' from heartbeat")"
+					--command="select beat>='${date}' from heartbeat")" = 't'
 				do
 					# репликация может быть ассинхронной, поэтому обновление может прийти не сразу
 					sleep 5
