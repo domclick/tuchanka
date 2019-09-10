@@ -6,12 +6,12 @@ readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 . "${root_dir}/load_config.bash"
 
 . "${lib_dir}/start_vms.bash"
-. "${lib_dir}/soft_off.bash"
+. "${lib_dir}/shut_down.bash"
 . "${lib_dir}/tick.bash"
 
 while true
 do
 	tick+
 	start_vms
-	soft_off
+	shut_down
 done
