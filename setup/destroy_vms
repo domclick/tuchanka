@@ -8,9 +8,9 @@ readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 
 if $autoVirtualBox
 then
-	. "${lib_dir}/hard_off.bash"
+	. "${lib_dir}/power_off.bash"
 
-	hard_off
+	power_off
 	for i in "${!vm_name[@]}"
 	do
 		grep_count=$(VBoxManage list vms | { grep --count --fixed-strings "\"${vm_name[$i]}\"" || [ $? -eq 1 ]; })
