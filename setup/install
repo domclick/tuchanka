@@ -112,7 +112,7 @@ then
 		h="${vm_name[$i]}"
 		echo "Create ${h}"
 		VBoxManage createvm --name "$h" --groups "${vm_group[$i]}" --ostype RedHat_64 --register
-		VBoxManage modifyvm "${h}" --description "${vm_desc[$i]}" --memory $RAM_MiB --vram=$VRAM_MiB --boot1 dvd --boot2 disk --boot3 none --boot4 none --rtcuseutc on --graphicscontroller vboxsvga --firmware bios --defaultfrontend headless --nic1 hostonly --nictype1 virtio --hostonlyadapter1 "${vboxnet_if}" --nic2 nat --nictype2 virtio --mouse usb --keyboard usb --audio none --cpus 2 --iconfile "${root_dir}/krogan.png"
+		VBoxManage modifyvm "${h}" --description "${vm_desc[$i]}" --memory $RAM_MiB --vram=$VRAM_MiB --boot1 dvd --boot2 disk --boot3 none --boot4 none --rtcuseutc on --graphicscontroller vboxsvga --firmware bios --defaultfrontend headless --nic1 hostonly --nictype1 virtio --hostonlyadapter1 "${vboxnet_if}" --nic2 nat --nictype2 virtio --mouse usb --keyboard usb --audio none --cpus 2 --iconfile "${root_dir}/images/krogan.png"
 		# get host dir
 		vboxvm_vdi="$(vboxvm_dir "${h}")/${h}.vdi"
 		VBoxManage storagectl "$h" --name 'DiskController' --add sas --hostiocache off --bootable on
