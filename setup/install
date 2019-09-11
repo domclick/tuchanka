@@ -72,6 +72,8 @@ Host ${ssh_hosts}
 	RequestTTY no
 	StrictHostKeyChecking yes
 	User root
+	TCPKeepAlive yes
+	ServerAliveInterval 5
 EOF
 unset ssh_hosts
 
