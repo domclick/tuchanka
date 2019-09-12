@@ -1,6 +1,7 @@
 # $1 cluster ID to test
 # $2 (optional) "broken" vm, don't test
 . "${lib_dir}/is_function_absent.bash"
+. "${lib_dir}/now.bash"
 if is_function_absent 'wait_stable'
 then
 	function wait_stable {
@@ -13,7 +14,7 @@ then
 				continue;
 			fi
 			# check that the cluster is stable for more then 25s
-			until test $(vm_ssh "$h" "echo \$((\$(date +%s)-\$(stat --printf='%Y' '${cib}')))") -gt 25
+			until test $(($(now)-$(vm_ssh "$h" "stat --printf='%Y' '${cib}'"))) -gt 25
 			do
 				sleep 5
 			done
