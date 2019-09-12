@@ -11,7 +11,7 @@ readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 if $autoVirtualBox
 then
 	. "${lib_dir}/rollback.bash"
-	. "${lib_dir}/start_vms.bash"
+	. "${lib_dir}/power_on.bash"
 	. "${lib_dir}/snapshot.bash"
 fi
 
@@ -21,7 +21,7 @@ readonly pgsql_dir='/var/lib/pgsql' # в ${root_dir}/common/postgresql.conf не
 if $autoVirtualBox
 then
 	rollback 'install'
-	start_vms
+	power_on
 else
 	echo 'При автоматической установке здесь происходит откат к snapshot, который был создан после установки пакетов.'
 fi

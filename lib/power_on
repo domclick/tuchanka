@@ -1,17 +1,13 @@
 #!/bin/bash
+# simple wrapper for library function power_on
+# $@ go to the function power_on
+
 # safe bash
 set -o errexit -o noclobber -o nounset -o pipefail
 
+# get config
 readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 . "${root_dir}/load_config.bash"
-
 . "${lib_dir}/power_on.bash"
-. "${lib_dir}/shut_down.bash"
-. "${lib_dir}/tick.bash"
 
-while true
-do
-	tick+
-	power_on
-	shut_down
-done
+power_on "$@"

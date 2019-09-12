@@ -7,13 +7,13 @@ readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 
 . "${lib_dir}/rollback.bash"
 . "${lib_dir}/tick.bash"
-. "${lib_dir}/start_vms.bash"
+. "${lib_dir}/power_on.bash"
 
 rollback 'setup'
 while true
 do
 	tick+
-	start_vms
+	power_on
 	for h in ${vm_name[@]}
 	do
 		VBoxManage controlvm "$h" reset

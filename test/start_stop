@@ -8,7 +8,7 @@ readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 
 . "${lib_dir}/vm_ssh.bash"
 . "${lib_dir}/rollback.bash"
-. "${lib_dir}/start_vms.bash"
+. "${lib_dir}/power_on.bash"
 . "${lib_dir}/shut_down.bash"
 . "${lib_dir}/tick.bash"
 . "${lib_dir}/wait_healthy.bash"
@@ -17,7 +17,7 @@ rollback 'setup'
 while true
 do
 	tick+
-	start_vms
+	power_on
 	for i in "${!cluster_name[@]}"
 	do
 		vm_ssh "${vm_name[$i]}" "pcs --debug cluster start --all --wait"
