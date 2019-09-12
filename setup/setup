@@ -135,6 +135,9 @@ do
 		vm_ssh "$h" 'chmod 0755 bin/mon'
 		# psql user config
 		vm_cp "$h" "${common_dir}/psqlrc" '.psqlrc'
+		# htop (used to monitor tests)
+		vm_ssh "$h" 'mkdir -p ~/.config/htop'
+		vm_cp "$h" "${common_dir}/htoprc" '~/.config/htop/tuchanka.htoprc'
 	done;unset h
 done;unset hosts
 # give some time to start services
