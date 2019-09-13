@@ -1,0 +1,13 @@
+#!/bin/bash
+# simple wrapper for library function vm_ssh
+# $@ go to the function vm_ssh
+
+# safe bash
+set -o errexit -o noclobber -o nounset -o pipefail
+
+# get config
+readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
+. "${root_dir}/load_config.bash"
+. "${lib_dir}/vm_ssh.bash"
+
+vm_ssh "$@"
