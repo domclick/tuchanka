@@ -151,3 +151,7 @@ cluster_name[$Tuchanka2a]='krogan2'
 cluster_vms[$Tuchanka2a]='tuchanka2a tuchanka2b tuchanka2c tuchanka2d'
 cluster_dbs[$Tuchanka2a]="$Krogan2"
 readonly -a cluster_name cluster_vms cluster_dbs
+# Команда, с помощью которой можно загрузить ключ в ssh-agent для работы с виртуалками
+# Возможны варианты, поэтому команда вынесена в конфиг.
+# В default_config эта команда загружает дефолтные ключи из ~/.ssh, пароли для них берет из keychain.
+vm_ssh_load_key='ssh-add -A'

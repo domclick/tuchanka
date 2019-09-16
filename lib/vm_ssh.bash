@@ -1,5 +1,37 @@
 # ssh for virtual machines
 . "${lib_dir}/is_function_absent.bash"
+if is_function_absent 'vm_ssh_add'
+then
+	readonly vm_ssh_add_key_prefix='# ssh key fingerprint '
+	function vm_ssh_add
+	{
+		local ssh_fingerprint=
+		local grep_count
+		# Если опция пуста, отключается автоматическая загрузка ключей
+		if [ -z "$vm_ssh_load_key" ]
+		then
+			return 0
+		fi
+		# on first run in the setup/install the ssh_config is abscent yet
+		if [ -f "${ssh_config}" ]
+		then
+			ssh_fingerprint="$(sed -n "/^${vm_ssh_add_key_prefix}/{s///p;q;}" "${ssh_config}")"
+		fi
+		if [ -z "$ssh_fingerprint" ]
+		then
+			return 0
+		fi
+		# ssh-add -l return 1 on empty
+		grep_count=$({ ssh-add -l || [ $? -eq 1 ];} | cut -d ' ' -f 2 | { grep --count --fixed-strings "$ssh_fingerprint" || [ $? -eq 1 ];})
+		if [ $grep_count -eq 0 ]
+		then
+			$vm_ssh_load_key
+		fi
+	}
+	readonly -f vm_ssh_add
+	# run on load
+	vm_ssh_add
+fi
 if is_function_absent 'vm_ssh'
 then
 	function vm_ssh

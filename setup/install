@@ -30,7 +30,7 @@ then
 	echo "Check ssh public key \"${ssh_public_key}\""
 	if [ -r "${ssh_public_key}" ]
 	then
-		ssh-keygen -B -f "${ssh_public_key}"
+		ssh_fingerprint="$(ssh-keygen -l -f "${ssh_public_key}" | cut -d ' ' -f 2)"
 	else
 		echo "Error: The ssh public key file is not readable" 1>&2
 		exit 3
@@ -50,19 +50,24 @@ then
 	echo "Error: ssh_config already exists, install is not clean" 1>&2
 	exit 4
 fi
+# keep fingerprint of ssh inside ssh_config comments
+echo "${vm_ssh_add_key_prefix}${ssh_fingerprint}" >"${ssh_config}"
+unset ssh_fingerprint
+# add key to the ssh-agent, if abscent
+vm_ssh_add
 ssh_hosts=''
 for i in "${!vm_name[@]}"
 do
 	echo -e "Host ${vm_name[$i]}\n\tHostName ${vm_ip[$i]}"
 	ssh_hosts="${ssh_hosts} ${vm_name[$i]}"
-done >"${ssh_config}";unset i
+done >>"${ssh_config}";unset i
 cat <<EOF >>"${ssh_config}"
 Host ${ssh_hosts}
 	ForwardAgent yes
 	ForwardX11 no
 	AddKeysToAgent yes
 	AddressFamily inet
-	BatchMode no
+	BatchMode yes
 	BindAddress ${vboxnet_hostip}
 	CanonicalizeHostname no
 	CheckHostIP yes
@@ -76,7 +81,6 @@ Host ${ssh_hosts}
 	ServerAliveInterval 5
 EOF
 unset ssh_hosts
-
 # generate etc_hosts file
 for i in "${!vm_name[@]}"
 do
