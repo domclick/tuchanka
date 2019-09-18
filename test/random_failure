@@ -1,0 +1,69 @@
+#!/bin/bash
+# safe bash
+set -o errexit -o noclobber -o nounset -o pipefail -o xtrace
+
+readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
+. "${root_dir}/load_config.bash"
+
+. "${lib_dir}/power_on.bash"
+. "${lib_dir}/power_off.bash"
+. "${lib_dir}/rollback.bash"
+
+cluster_hb1[$Tuchanka0a]="'${heartbeat_dir}/heart0a'"
+cluster_hb2[$Tuchanka0a]="'${heartbeat_dir}/heart0b'"
+cluster_test[$Tuchanka0a]="'${test_dir}/random_failure1' krogan0 3>'${test_dir}/test0.log' 4>'${test_dir}/monitor0'"
+cluster_log[$Tuchanka0a]="cat '${test_dir}/test0.log'"
+cluster_mon[$Tuchanka0a]="${test_dir}/monitor0"
+cluster_hb1[$Tuchanka1a]="'${heartbeat_dir}/heart1'"
+cluster_hb2[$Tuchanka1a]="'${heartbeat_dir}/reader1'"
+cluster_test[$Tuchanka1a]="'${test_dir}/random_failure1' krogan1 3>'${test_dir}/test1.log' 4>'${test_dir}/monitor1'"
+cluster_log[$Tuchanka1a]="cat '${test_dir}/test1.log'"
+cluster_mon[$Tuchanka1a]="${test_dir}/monitor1"
+cluster_hb1[$Tuchanka2a]="'${heartbeat_dir}/heart2'"
+cluster_hb2[$Tuchanka2a]="'${heartbeat_dir}/reader2'"
+cluster_test[$Tuchanka2a]="'${test_dir}/random_failure1' krogan2 3>'${test_dir}/test2.log' 4>'${test_dir}/monitor2'"
+cluster_log[$Tuchanka2a]="cat '${test_dir}/test2.log'"
+cluster_mon[$Tuchanka2a]="${test_dir}/monitor2"
+readonly -a cluster_hb1 cluster_hb2 cluster_test cluster_log cluster_mon
+declare -a pane_hb1 pane_hb2 pane_mon_host pane_log pane_top pane_mon pane_test
+
+
+if ! tmux has-session -t tuchanka_test_random_failure
+then
+	tmux new-session -d -s tuchanka_test_random_failure -n tuchanka_test_random_failure -x $COLUMNS -y $LINES
+	tmux set-option mouse on
+	tmux set-option status off
+	tmux set-window-option remain-on-exit on
+	declare -i n=${#cluster_name[@]}
+	for i in "${!cluster_name[@]}"
+	do
+		pane_test[$i]="$(tmux display-message -p '#{pane_id}')"
+		if [ $n -gt 1 ]
+		then
+			tmux split-window -h -p $((100-100/n))
+			let n=n-1
+		fi
+	done; unset i n
+	for i in "${!cluster_name[@]}"
+	do
+		tmux respawn-pane -t "${pane_test[$i]}" -k "${cluster_test[$i]}"
+		pane_mon[$i]="$(tmux split-window -t "${pane_test[$i]}" -P -F '#{pane_id}' -v -b -l $((41+6+5)) true)"
+		pane_top[$i]="$(tmux split-window -P -F '#{pane_id}' -v -b -l $((6+5)) true)"
+		pane_log[$i]="$(tmux split-window -P -F '#{pane_id}' -v -b -l 5 "${cluster_log[$i]}")"
+		pane_hb1[$i]="$(tmux split-window -P -F '#{pane_id}' -h -b -l 10 "${cluster_hb1[$i]}")"
+		pane_hb2[$i]="$(tmux split-window -P -F '#{pane_id}' -v -l 3 "${cluster_hb2[$i]}")"
+		pane_mon_host[$i]="$(tmux split-window -P -F '#{pane_id}' -v -l 1 \
+			"'${test_dir}/random_failure_monitor_switcher' '${pane_mon[$i]}' '${pane_top[$i]}' <'${cluster_mon[$i]}'")"
+	done
+	tmux select-pane -t "${pane_mon[$Tuchanka1a]}"
+
+	rollback 'setup' "${vm_name[$Witness]}"
+	power_on "${vm_name[$Witness]}"
+fi
+
+tmux attach-session -t tuchanka_test_random_failure
+# Finish, cleanup
+if ! tmux has-session -t tuchanka_test_random_failure
+then
+	power_off
+fi

@@ -1,0 +1,179 @@
+#!/bin/bash
+# safe bash
+set -o errexit -o noclobber -o nounset -o pipefail -o xtrace
+
+readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
+. "${root_dir}/load_config.bash"
+
+. "${lib_dir}/tick.bash"
+. "${lib_dir}/random_word.bash"
+. "${lib_dir}/first_word.bash"
+. "${lib_dir}/now.bash"
+. "${lib_dir}/rollback.bash"
+. "${lib_dir}/power_on.bash"
+. "${lib_dir}/power_off.bash"
+. "${lib_dir}/shut_down.bash"
+. "${lib_dir}/wait_healthy.bash"
+. "${lib_dir}/wait_ready.bash"
+. "${lib_dir}/wait_stable.bash"
+
+# $@ список кластеров, которые надо протестировать, если пустой, то все
+# надо преобразовать список имен в список ID
+declare clusters
+if (( "$#" ))
+then
+	while (( $# ))
+	do
+		for i in "${!cluster_name[@]}"
+		do
+			if [ "$1" = "${cluster_name[$i]}" ]
+			then
+				clusters="${clusters} $i"
+				break
+			fi
+		done;unset i
+		shift
+	done
+	# remove leading ' '
+	clusters="${clusters#' '}"
+else # Если пустой, то все
+	clusters="${!cluster_vms[*]}"
+fi
+
+# Проверяю, открыт ли 4, если нет, перенаправляю его на /dev/null
+if ! { >&4; } 2>/dev/null
+then
+	exec 4>/dev/null
+fi
+
+# у нижеопрепределяемых функций
+# $1 VM name of the node to test
+break_node=()
+fix_node=()
+# Reset node
+function Reset {
+	VBoxManage controlvm "$1" reset
+}
+readonly -f Reset
+break_node+=('Reset')
+# PowerOff node
+function PowerOff {
+	power_off "$1"
+}
+readonly -f PowerOff
+break_node+=('PowerOff')
+# ShutDown node
+function ShutDown {
+	shut_down "$1"
+}
+readonly -f ShutDown
+break_node+=('ShutDown')
+# Unlink node (net isolation)
+function UnLink {
+	VBoxManage controlvm "$1" setlinkstate1 off
+}
+readonly -f UnLink
+break_node+=('UnLink')
+# Postgres-KILL
+function Postgres-KILL {
+	vm_ssh "$1" "killall -KILL postgres"
+}
+readonly -f Postgres-KILL
+break_node+=('Postgres-KILL')
+# Postgres-STOP
+function Postgres-STOP {
+	vm_ssh "$1" "killall -STOP postgres"
+}
+readonly -f Postgres-STOP
+break_node+=('Postgres-STOP')
+# SBD-STOP (test watchdog)
+function SBD-STOP {
+	vm_ssh "$1" "killall -STOP sbd"
+	sleep 5 # watchdog timer
+}
+readonly -f SBD-STOP
+break_node+=('SBD-STOP')
+# Fork Bomb (test "out of memory")
+function ForkBomb {
+	# После форк бомбы ssh дисконнектит с ненулевым кодом возврата, игнорю
+	vm_ssh "$1" ':(){ :|:& };:&' || true
+	sleep 5
+}
+readonly -f ForkBomb
+break_node+=('ForkBomb')
+# Test out of disk space
+function OutOfSpace {
+	# Может завершать работу с ненулевым возвратом, игнорю
+	vm_ssh "$1" "f=\"\$(mktemp)\";exec 3>\"\$f\";rm \"\$f\";cat /dev/zero >&3;sleep 10" || true
+}
+readonly -f OutOfSpace
+break_node+=('OutOfSpace')
+
+# test defined cluster for defined failure
+# $1 cluster ID
+# $2 fault ID (break_node array index)
+function test_node {
+	local c=$1 f=$2
+	local h unbroken time
+	# random node from the cluster
+	h="$(random_word ${cluster_vms[$c]})"
+	for unbroken in ${cluster_vms[$c]}
+	do
+		if [ "$unbroken" != "$h" ]
+		then
+			break
+		fi
+	done;
+	echo "$unbroken" >&4
+	wait_healthy $c
+	tick+ "${break_node[$f]} $h"
+	time=$(now) # засекаю время
+	${break_node[$f]} "$h"
+	sleep 5 # some time to propagate events
+	tick "Ready? ${cluster_name[$c]}"
+	wait_ready $c
+	time=$(($(now)-$time))
+	tick "${break_node[$f]} reaction ${time}s"
+	tick "Fix $h"
+	wait_stable $c "$h"
+	power_off "$h"
+	# запоминаю время, должна быть пауза не меньше 60, чтобы пропали сообщения о фенсинге
+	time=$(now)
+	VBoxManage modifyvm "$h" --cableconnected1 on
+	power_on "$h"
+	wait_ready $c
+	time=$(($(now)-$time))
+	sleep $((60-$time))
+	vm_ssh "$h" "/root/bin/restore"
+}
+readonly -f test_node
+
+for i in $clusters
+do
+	echo >&4
+	tick "Rollback ${cluster_name[$i]}"
+	rollback 'setup' ${cluster_vms[$i]}
+	tick "Boot ${cluster_name[$i]}"
+	power_on ${cluster_vms[$i]}
+	tick "Start ${cluster_name[$i]}"
+	vm_ssh "${vm_name[$i]}" "pcs cluster start --all"
+done;unset i
+
+# check all failure
+for f in ${!break_node[@]}
+do
+	for i in $clusters
+	do
+		test_node $i $f
+	done;unset i
+done;unset f
+
+# random failure
+while true
+do
+	for i in $clusters
+	do
+		f=$(random_word ${!break_node[@]})
+		test_node $i $f
+	done;unset i f
+done
