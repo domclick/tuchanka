@@ -25,8 +25,8 @@ readonly RAM_MiB=1024 VRAM_MiB=10 HDD_MiB=5120 time_zone='Europe/Moscow'
 # really don't need to change in the test bed, password of hacluster unix user
 readonly hacluster_password='ChangeMe'
 # dirs
-readonly setup_dir="${root_dir}/setup" lib_dir="${root_dir}/lib" test_dir="${root_dir}/test"
-readonly common_dir="${root_dir}/common" pcs_dir="${root_dir}/pcs" heartbeat_dir="${root_dir}/heartbeat"
+readonly setup_dir="${root_dir}/setup" lib_dir="${root_dir}/lib" test_dir="${root_dir}/test" upload_dir="${root_dir}/upload"
+readonly common_dir="${upload_dir}/common" pcs_dir="${root_dir}/pcs" heartbeat_dir="${root_dir}/heartbeat"
 # files
 readonly ssh_config="${root_dir}/ssh_config" ssh_known_hosts="${root_dir}/ssh_known_hosts" etc_hosts="${root_dir}/etc_hosts"
 

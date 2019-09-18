@@ -16,7 +16,7 @@ then
 fi
 
 # configure
-readonly pgsql_dir='/var/lib/pgsql' # в ${root_dir}/common/postgresql.conf независимо прописан путь /var/lib/pgsql
+readonly pgsql_dir='/var/lib/pgsql' # в upload/common/postgresql.conf независимо прописан путь /var/lib/pgsql
 
 if $autoVirtualBox
 then
@@ -60,7 +60,7 @@ do
 	vm_ssh "$h" 'systemctl enable --now pcsd.service --quiet'
 	# bash
 	vm_ssh "$h" 'cat >>.bash_profile' <"${common_dir}/bash_profile"
-	vm_cp "$h" "${root_dir}/${h}/bashrc_local" '.bashrc_local'
+	vm_cp "$h" "${upload_dir}/${h}/bashrc_local" '.bashrc_local'
 	vm_ssh "$h" 'cat >>.bashrc' <"${common_dir}/bashrc"
 done;unset h
 
@@ -189,16 +189,16 @@ do
 	# pg_ident.conf pg_hba.conf postgresql.conf common for all databases
 	vm_ssh "$m" "cp -a '${pgdata}/postgresql.conf' '${pgdata}/postgresql.conf.original'"
 	vm_ssh "$m" "echo -e \"include='postgresql.conf.original'\ninclude_if_exists='../postgresql.conf'\ninclude_if_exists='../${custom_conf}'\" >|'${pgdata}/postgresql.conf'"
-	vm_cp2pgsql "$m" "${root_dir}/${m}/${custom_conf}" "${pgsql_dir}/${custom_conf}"
-	vm_cp2pgsql "$m" "${root_dir}/${m}/${restore_paf}" "${pgsql_dir}/${restore_paf}"
+	vm_cp2pgsql "$m" "${upload_dir}/${m}/${custom_conf}" "${pgsql_dir}/${custom_conf}"
+	vm_cp2pgsql "$m" "${upload_dir}/${m}/${restore_paf}" "${pgsql_dir}/${restore_paf}"
 	# without -t is freezed here
 	vm_ssh -t "$m" "su -l postgres -c \"pg_ctl start --wait --options='--synchronous_standby_names=' --pgdata='${pgdata}'\""
 	# создаю пользователя для репликации, пароль захардкожен, возможно в будущем будет другой способ аутентикации
 	vm_ssh "$m" "psql postgres postgres --no-psqlrc --port=${pgport} --command=\"create user replicant with password 'Nexus 6' replication\""
 	for h in ${db_setup_slaves[$i]}
 	do
-		vm_cp2pgsql "$h" "${root_dir}/${h}/${custom_conf}" "${pgsql_dir}/${custom_conf}"
-		vm_cp2pgsql "$h" "${root_dir}/${h}/${restore_paf}" "${pgsql_dir}/${restore_paf}"
+		vm_cp2pgsql "$h" "${upload_dir}/${h}/${custom_conf}" "${pgsql_dir}/${custom_conf}"
+		vm_cp2pgsql "$h" "${upload_dir}/${h}/${restore_paf}" "${pgsql_dir}/${restore_paf}"
 		vm_ssh "$h" "su -l postgres -c \"pg_basebackup --pgdata='${pgdata}' --dbname='host=${m} port=${pgport} user=replicant sslmode=disable' --progress --write-recovery-conf\""
 		vm_ssh -t "$h" "su -l postgres -c \"pg_ctl start --wait --pgdata='${pgdata}'\""
 		echo "Wait for starting replication on slave $h"
@@ -229,7 +229,7 @@ do
 			command su -l postgres -c "pg_basebackup --pgdata='${pgdata}' --dbname='host=${config_name} port=${pgport} user=replicant sslmode=disable' --progress"
 			EOF
 		vm_ssh "$h" "chmod 755 'bin/${restore_sh}'"
-		vm_cp "$h" "${root_dir}/${h}/restore" "bin/"
+		vm_cp "$h" "${upload_dir}/${h}/restore" "bin/"
 	done;unset h
 	# При `pg_ctl stop --wait` pg_ctl ждет когда postgresql удалит свой pid файл.
 	# Есть подозрение, что этого недостаточно, поставил дополнительную задержку.
