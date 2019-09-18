@@ -20,7 +20,9 @@ then
 		for vm in $vms
 		do
 			echo "Waiting for system on ${vm}"
-			until vm_ssh "$vm" 'systemctl is-system-running' 2>/dev/null
+			# Тут как ошибки ssh так и ненулевой возврат systemctl is-system-running
+			# должны приводить к дальнейшему ожиданию
+			until vm_ssh "$vm" 'systemctl is-system-running'
 			do
 				sleep 5
 			done
