@@ -5,7 +5,7 @@ set -o errexit -o noclobber -o nounset -o pipefail
 # get config
 readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 . "${root_dir}/load_config.bash"
-. "${lib_dir}/grep_count.bash"
+. "${lib_dir}/is_grep.bash"
 
 if $autoVirtualBox
 then
@@ -14,13 +14,13 @@ then
 	power_off
 	for i in "${!vm_name[@]}"
 	do
-		gc=$(VBoxManage list vms | grep_count --fixed-strings "\"${vm_name[$i]}\"")
-		if [ $gc -ne 0 ]
+		is=$(VBoxManage list vms | is_grep "^\"${vm_name[$i]}\" ")
+		if $is
 		then
 			echo "destroy ${vm_name[$i]}"
 			VBoxManage unregistervm "${vm_name[$i]}" --delete
 		fi
-	done;unset i gc
+	done;unset i is
 
 	# get name for hostonlyif
 	vboxnet_if="$(VBoxManage list hostonlyifs|

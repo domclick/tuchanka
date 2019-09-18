@@ -7,10 +7,11 @@ if is_function_absent 'power_on'
 then
 	function power_on {
 		local vms="${*:-"${vm_name[*]}"}"
-		local vm
+		local vm is
 		for vm in $vms
 		do
-			if ! is_vm_running "$vm"
+			is=$(is_vm_running "$vm")
+			if ! $is
 			then
 				echo "Start ${vm}"
 				VBoxManage startvm "$vm"
