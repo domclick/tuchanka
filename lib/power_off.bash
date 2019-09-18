@@ -18,11 +18,11 @@ then
 		for vm in $vms
 		do
 			echo "Waiting power_off of ${vm}"
-			is=$(is_vm_running "$vm")
-			while $is
+			while true
 			do
-				sleep 5
 				is=$(is_vm_running "$vm")
+				$is || break
+				sleep 5
 			done
 		done;unset vm
 		sleep 1

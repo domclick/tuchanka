@@ -141,13 +141,12 @@ declare ssh_key
 for i in "${!vm_name[@]}"
 do
 	echo "Waiting for ssh on ${vm_name[$i]}"
-	# ssh-keyscan иногда возвращает при ошибках код отличный от 0,
-	# иногда нет. Приходится извращаться.
-	ssh_key="$(ssh-keyscan -t ssh-ed25519 "${vm_ip[$i]}" 2>/dev/null || true)"
-	until [ -n "${ssh_key}" ]
+	# ssh-keyscan иногда возвращает при ошибках код отличный от 0, иногда нет.
+	while true
 	do
-		sleep 5
 		ssh_key="$(ssh-keyscan -t ssh-ed25519 "${vm_ip[$i]}" 2>/dev/null || true)"
+		[ -n "${ssh_key}" ] && break
+		sleep 5
 	done
 	echo "${ssh_key}" >>"${ssh_known_hosts}"
 	# kdump отключен в kickstart файле, выключаю сервис, чтобы systemctl is-system-runnig корректно работал

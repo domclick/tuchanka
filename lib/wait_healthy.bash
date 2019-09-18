@@ -6,10 +6,11 @@ if is_function_absent 'wait_healthy'
 then
 	function wait_healthy {
 		local cluster_id=$1
-		local db master slave date h
+		local db master slave date h is
 		# check that the cluster has all nodes
 		for h in ${cluster_vms[${cluster_id}]}
 		do
+			# Ожидание как в случае ошибок ssh так и ненулевого crm_mon
 			until vm_ssh "$h" "/usr/sbin/crm_mon --simple-status"
 			do
 				sleep 5
@@ -26,11 +27,13 @@ then
 			for slave in ${db_slaves[$db]}
 			do
 				slave="${slave}:${db_port[$db]}"
-				until test "$(psql --no-align --quiet --tuples-only --no-psqlrc \
-					--dbname="postgresql://heartbeat:ChangeMe@${slave}/heartbeat?connect_timeout=2&application_name=wait_healthy.bash&keepalives=1&keepalives_idle=1&keepalives_interval=1&keepalives_count=1&target_session_attrs=any" \
-					--command="select beat>='${date}' from heartbeat")" = 't'
+				# репликация может быть ассинхронной, поэтому обновление может прийти не сразу
+				while true
 				do
-					# репликация может быть ассинхронной, поэтому обновление может прийти не сразу
+					is="$(psql --no-align --quiet --tuples-only --no-psqlrc \
+						--dbname="postgresql://heartbeat:ChangeMe@${slave}/heartbeat?connect_timeout=2&application_name=wait_healthy.bash&keepalives=1&keepalives_idle=1&keepalives_interval=1&keepalives_count=1&target_session_attrs=any" \
+						--command="select beat>='${date}' from heartbeat")"
+					[ "$is" = 't' ] && break
 					sleep 5
 				done
 			done;unset slave
@@ -38,7 +41,8 @@ then
 		# History of errors must be clean
 		for h in ${cluster_vms[${cluster_id}]}
 		do
-			test 'No failcounts' = "$(vm_ssh "$h" 'pcs resource failcount show')"
+			is="$(vm_ssh "$h" 'pcs resource failcount show')"
+			test 'No failcounts' = "$is"
 		done;unset h
 	}
 	readonly -f wait_healthy

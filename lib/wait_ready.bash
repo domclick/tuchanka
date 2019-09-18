@@ -8,6 +8,7 @@ then
 		for db in ${cluster_dbs[${cluster_id}]}
 		do
 			master="${float_name[$db]}:${db_port[$db]}"
+			# В случае ошибок - ожидание
 			until date="$(psql --no-align --quiet --tuples-only --no-psqlrc \
 				--dbname="postgresql://heartbeat:ChangeMe@${master}/heartbeat?connect_timeout=2&application_name=wait_ready.bash&keepalives=1&keepalives_idle=1&keepalives_interval=1&keepalives_count=1&target_session_attrs=read-write" \
 				--command="update heartbeat set beat=LOCALTIME(1) returning beat")"
@@ -24,6 +25,7 @@ then
 			slaves="${slaves#,}"
 			if [ -n "$slaves" ]
 			then
+				# В случае ошибок - ожидание
 				until test "$(psql --no-align --quiet --tuples-only --no-psqlrc \
 					--dbname="postgresql://heartbeat:ChangeMe@${slaves}/heartbeat?connect_timeout=2&application_name=wait_ready.bash&keepalives=1&keepalives_idle=1&keepalives_interval=1&keepalives_count=1&target_session_attrs=any" \
 					--command="select beat>='${date}' from heartbeat")" = 't'

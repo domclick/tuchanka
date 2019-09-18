@@ -202,11 +202,11 @@ do
 		vm_ssh "$h" "su -l postgres -c \"pg_basebackup --pgdata='${pgdata}' --dbname='host=${m} port=${pgport} user=replicant sslmode=disable' --progress --write-recovery-conf\""
 		vm_ssh -t "$h" "su -l postgres -c \"pg_ctl start --wait --pgdata='${pgdata}'\""
 		echo "Wait for starting replication on slave $h"
-		replication_status=$(vm_ssh "$h" "psql --no-psqlrc --quiet --tuples-only --expanded --port=${pgport} postgres postgres --command=\"select status from pg_stat_wal_receiver where sender_host='${m}'\"")
-		until [ "$replication_status" = 'status | streaming' ]
+		while true
 		do
-			sleep 5
 			replication_status=$(vm_ssh "$h" "psql --no-psqlrc --quiet --tuples-only --expanded --port=${pgport} postgres postgres --command=\"select status from pg_stat_wal_receiver where sender_host='${m}'\"")
+			[ "$replication_status" = 'status | streaming' ] && break
+			sleep 5
 		done
 	done;unset h
 	# now stoping, master must be first
@@ -248,6 +248,7 @@ do
 	float_master="${float_name[$i]}"
 	master="${db_setup_master[$i]}"
 	echo "Install heartbeat into ${master}"
+	# Ожидание поднятия плавающих ip
 	echo "Waiting for ping ${float_master}"
 	while ! ping -q -c 1 "${float_master}"
 	do
