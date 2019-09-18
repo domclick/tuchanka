@@ -10,7 +10,7 @@ then
 		local snapshot_name="$1" snapshot_description="$2"
 		shift 2
 		local vms="${*:-"${vm_name[*]}"}"
-		local vm grep_count
+		local vm gc
 
 		shut_down $vms
 
@@ -18,10 +18,9 @@ then
 		do
 			echo "Snapshot ${vm} as \"${snapshot_name}\""
 			# VBoxManage snapshot возвращает 1 если нет снэпшотов
-			# grep возвращает 1 если нет нахождений строк
 			# перехватываю ошибку и игнорирую.
-			grep_count=$(VBoxManage snapshot "$vm" list --machinereadable|grep --count --extended-regexp "^SnapshotName[-[:digit:]]*=\"$snapshot_name\"\$" || [ $? -eq 1 ])
-			if [ $grep_count -ne 0 ]
+			gc=$({ VBoxManage snapshot "$vm" list --machinereadable || [ $? -eq 1 ];} | grep_count --extended-regexp "^SnapshotName[-[:digit:]]*=\"$snapshot_name\"\$")
+			if [ $gc -ne 0 ]
 			then
 				VBoxManage snapshot "$vm" delete "$snapshot_name"
 			fi

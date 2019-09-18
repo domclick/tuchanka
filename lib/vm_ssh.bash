@@ -1,12 +1,13 @@
 # ssh for virtual machines
 . "${lib_dir}/is_function_absent.bash"
+. "${lib_dir}/grep_count.bash"
 if is_function_absent 'vm_ssh_add'
 then
 	readonly vm_ssh_add_key_prefix='# ssh key fingerprint '
 	function vm_ssh_add
 	{
 		local ssh_fingerprint=
-		local grep_count
+		local gc
 		# Если опция пуста, отключается автоматическая загрузка ключей
 		if [ -z "$vm_ssh_load_key" ]
 		then
@@ -22,8 +23,8 @@ then
 			return 0
 		fi
 		# ssh-add -l return 1 on empty
-		grep_count=$({ ssh-add -l || [ $? -eq 1 ];} | cut -d ' ' -f 2 | { grep --count --fixed-strings "$ssh_fingerprint" || [ $? -eq 1 ];})
-		if [ $grep_count -eq 0 ]
+		gc=$({ ssh-add -l || [ $? -eq 1 ];} | grep_count --fixed-strings "$ssh_fingerprint")
+		if [ $gc -eq 0 ]
 		then
 			$vm_ssh_load_key
 		fi
