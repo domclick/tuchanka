@@ -19,15 +19,14 @@ then
 	# Инициализирую счетчик
 	declare -i tick_counter=0
 	# функция для вывода тика, в качестве опционального аргумента может быть сообщение (комментарий)
-	function tick {
-		# $@ комментарии
-		echo -ne "\n${tick_counter} $(date '+%T')" "$@" >&3
-	}
+	# $@ комментарии
+	function tick { echo -ne "\n${tick_counter} $(date '+%T')" "$@" >&3;}
+	readonly -f tick
 	# функция для инкремента счетчика и вывода тика, в качестве опционального аргумента может быть сообщение (комментарий)
+	# $@ комментарии
 	function tick+ {
-		# $@ комментарии
 		let tick_counter=$tick_counter+1
 		tick "$@"
 	}
-	readonly -f tick tick+
+	readonly -f tick+
 fi

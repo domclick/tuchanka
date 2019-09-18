@@ -34,11 +34,8 @@ then
 fi
 if is_function_absent 'vm_ssh'
 then
-	function vm_ssh
-	{
-		# $@ передается ssh
-		ssh -F "${ssh_config}" -o "UserKnownHostsFile=${ssh_known_hosts}" "$@"
-	}
+	# $@ передается ssh
+	function vm_ssh { ssh -F "${ssh_config}" -o "UserKnownHostsFile=${ssh_known_hosts}" "$@";}
 	readonly -f vm_ssh
 fi
 if is_function_absent 'vm_cp'
