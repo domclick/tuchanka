@@ -1,5 +1,5 @@
 # https://upload.wikimedia.org/wikipedia/commons/9/95/Xterm_color_chart.png
 # change cursor and promptcolor
-CURSOR_COLOR='#8700ff'
-PROMPT_COLOR='93'
+CURSOR_COLOR='#0000ff'
+PROMPT_COLOR='21'
 complete -C '/usr/bin/aws_completer' aws

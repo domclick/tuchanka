@@ -29,129 +29,130 @@ readonly setup_dir="${root_dir}/setup" lib_dir="${root_dir}/lib" test_dir="${roo
 readonly common_dir="${upload_dir}/common" pcs_dir="${root_dir}/pcs" heartbeat_dir="${root_dir}/heartbeat"
 # files
 readonly ssh_config="${root_dir}/ssh_config" ssh_known_hosts="${root_dir}/ssh_known_hosts" etc_hosts="${root_dir}/etc_hosts"
+# Команда, с помощью которой можно загрузить ключ в ssh-agent для работы с виртуалками
+# Возможны варианты, поэтому команда вынесена в конфиг.
+# В default_config эта команда загружает дефолтные ключи из ~/.ssh, пароли для них берет из keychain.
+vm_ssh_load_key='ssh-add -A'
 
 Witness=251
 vm_ip[$Witness]="${vboxnet_prefix}.${Witness}"
 vm_name[$Witness]='witness'
-vm_group[$Witness]='/Tuchanka'
+# Группа сервисных серверов, оказывающих услуги для всех кластеров, типа quorum device.
+vm_group[$Witness]='/Tuchanka/Tuchanka0'
 vm_desc[$Witness]='Witness server for the Tuchanka cluster'
 
-Tuchanka0a=1
-vm_ip[$Tuchanka0a]="${vboxnet_prefix}.${Tuchanka0a}"
-vm_name[$Tuchanka0a]='tuchanka0a'
-vm_group[$Tuchanka0a]='/Tuchanka/Tuchanka0'
-vm_desc[$Tuchanka0a]='Tuchanka0a node of the Tuchanka0 cluster'
-
-Tuchanka0b=2
-vm_ip[$Tuchanka0b]="${vboxnet_prefix}.${Tuchanka0b}"
-vm_name[$Tuchanka0b]='tuchanka0b'
-vm_group[$Tuchanka0b]='/Tuchanka/Tuchanka0'
-vm_desc[$Tuchanka0b]='Tuchanka0b node of the Tuchanka0 cluster'
-
-Tuchanka1a=11
+Tuchanka1a=1
 vm_ip[$Tuchanka1a]="${vboxnet_prefix}.${Tuchanka1a}"
 vm_name[$Tuchanka1a]='tuchanka1a'
 vm_group[$Tuchanka1a]='/Tuchanka/Tuchanka1'
 vm_desc[$Tuchanka1a]='Tuchanka1a node of the Tuchanka1 cluster'
 
-Tuchanka1b=12
+Tuchanka1b=2
 vm_ip[$Tuchanka1b]="${vboxnet_prefix}.${Tuchanka1b}"
 vm_name[$Tuchanka1b]='tuchanka1b'
 vm_group[$Tuchanka1b]='/Tuchanka/Tuchanka1'
 vm_desc[$Tuchanka1b]='Tuchanka1b node of the Tuchanka1 cluster'
 
-Tuchanka2a=21
+Tuchanka2a=11
 vm_ip[$Tuchanka2a]="${vboxnet_prefix}.${Tuchanka2a}"
 vm_name[$Tuchanka2a]='tuchanka2a'
 vm_group[$Tuchanka2a]='/Tuchanka/Tuchanka2'
 vm_desc[$Tuchanka2a]='Tuchanka2a node of the Tuchanka2 cluster'
 
-Tuchanka2b=22
+Tuchanka2b=12
 vm_ip[$Tuchanka2b]="${vboxnet_prefix}.${Tuchanka2b}"
 vm_name[$Tuchanka2b]='tuchanka2b'
 vm_group[$Tuchanka2b]='/Tuchanka/Tuchanka2'
 vm_desc[$Tuchanka2b]='Tuchanka2b node of the Tuchanka2 cluster'
 
-Tuchanka2c=23
-vm_ip[$Tuchanka2c]="${vboxnet_prefix}.${Tuchanka2c}"
-vm_name[$Tuchanka2c]='tuchanka2c'
-vm_group[$Tuchanka2c]='/Tuchanka/Tuchanka2'
-vm_desc[$Tuchanka2c]='Tuchanka2c node of the Tuchanka2 cluster'
+Tuchanka4a=21
+vm_ip[$Tuchanka4a]="${vboxnet_prefix}.${Tuchanka4a}"
+vm_name[$Tuchanka4a]='tuchanka4a'
+vm_group[$Tuchanka4a]='/Tuchanka/Tuchanka4'
+vm_desc[$Tuchanka4a]='Tuchanka4a node of the Tuchanka4 cluster'
 
-Tuchanka2d=24
-vm_ip[$Tuchanka2d]="${vboxnet_prefix}.${Tuchanka2d}"
-vm_name[$Tuchanka2d]='tuchanka2d'
-vm_group[$Tuchanka2d]='/Tuchanka/Tuchanka2'
-vm_desc[$Tuchanka2d]='Tuchanka2d node of the Tuchanka2 cluster'
-readonly Witness Tuchanka0a Tuchanka0b Tuchanka1a Tuchanka1b Tuchanka2a Tuchanka2b Tuchanka2c Tuchanka2d
+Tuchanka4b=22
+vm_ip[$Tuchanka4b]="${vboxnet_prefix}.${Tuchanka4b}"
+vm_name[$Tuchanka4b]='tuchanka4b'
+vm_group[$Tuchanka4b]='/Tuchanka/Tuchanka4'
+vm_desc[$Tuchanka4b]='Tuchanka4b node of the Tuchanka4 cluster'
+
+Tuchanka4c=23
+vm_ip[$Tuchanka4c]="${vboxnet_prefix}.${Tuchanka4c}"
+vm_name[$Tuchanka4c]='tuchanka4c'
+vm_group[$Tuchanka4c]='/Tuchanka/Tuchanka4'
+vm_desc[$Tuchanka4c]='Tuchanka4c node of the Tuchanka4 cluster'
+
+Tuchanka4d=24
+vm_ip[$Tuchanka4d]="${vboxnet_prefix}.${Tuchanka4d}"
+vm_name[$Tuchanka4d]='tuchanka4d'
+vm_group[$Tuchanka4d]='/Tuchanka/Tuchanka4'
+vm_desc[$Tuchanka4d]='Tuchanka4d node of the Tuchanka4 cluster'
+readonly Witness Tuchanka1a Tuchanka1b Tuchanka2a Tuchanka2b Tuchanka4a Tuchanka4b Tuchanka4c Tuchanka4d
 readonly -a vm_ip vm_name vm_group vm_desc
 
 # ID БД совпадет с ID float_ip(float_name) на котором находится мастер
-Krogan0a=101
-float_ip[$Krogan0a]="${vboxnet_prefix}.${Krogan0a}"
+Krogan1a=101
+float_ip[$Krogan1a]="${vboxnet_prefix}.${Krogan1a}"
 # так же плавающий IP мастера БД
-float_name[$Krogan0a]='krogan0a'
+float_name[$Krogan1a]='krogan1a'
 # Имена плавающих IP рабов
-db_slaves[$Krogan0a]=''
-db_port[$Krogan0a]=5433
-db_setup_master[$Krogan0a]='tuchanka0a'
+db_slaves[$Krogan1a]=''
+db_port[$Krogan1a]=5433
+db_setup_master[$Krogan1a]='tuchanka1a'
 # адреса рабов	БД, которые используются при первичной настройке с помощью pg_ctl
 # до создания кластера pacemaker
-db_setup_slaves[$Krogan0a]='tuchanka0b'
-Krogan0b=102
-float_ip[$Krogan0b]="${vboxnet_prefix}.${Krogan0b}"
-float_name[$Krogan0b]='krogan0b'
-db_slaves[$Krogan0b]=''
-db_port[$Krogan0b]=5434
-db_setup_master[$Krogan0b]='tuchanka0b'
-db_setup_slaves[$Krogan0b]='tuchanka0a'
-Krogan1=103
-float_ip[$Krogan1]="${vboxnet_prefix}.${Krogan1}"
-float_name[$Krogan1]='krogan1'
-db_slaves[$Krogan1]='krogan1s1'
-db_port[$Krogan1]=5432
-db_setup_master[$Krogan1]='tuchanka1a'
-db_setup_slaves[$Krogan1]='tuchanka1b'
-Krogan1s1=104
-float_ip[$Krogan1s1]="${vboxnet_prefix}.${Krogan1s1}"
-float_name[$Krogan1s1]='krogan1s1'
-Krogan2=105
+db_setup_slaves[$Krogan1a]='tuchanka1b'
+Krogan1b=102
+float_ip[$Krogan1b]="${vboxnet_prefix}.${Krogan1b}"
+float_name[$Krogan1b]='krogan1b'
+db_slaves[$Krogan1b]=''
+db_port[$Krogan1b]=5434
+db_setup_master[$Krogan1b]='tuchanka1b'
+db_setup_slaves[$Krogan1b]='tuchanka1a'
+Krogan2=103
 float_ip[$Krogan2]="${vboxnet_prefix}.${Krogan2}"
 float_name[$Krogan2]='krogan2'
-db_slaves[$Krogan2]='krogan2s1 krogan2s2 krogan2s3'
+db_slaves[$Krogan2]='krogan2s1'
 db_port[$Krogan2]=5432
 db_setup_master[$Krogan2]='tuchanka2a'
-# several slaves separated by space
-db_setup_slaves[$Krogan2]='tuchanka2b tuchanka2c tuchanka2d'
-Krogan2s1=106
+db_setup_slaves[$Krogan2]='tuchanka2b'
+Krogan2s1=104
 float_ip[$Krogan2s1]="${vboxnet_prefix}.${Krogan2s1}"
 float_name[$Krogan2s1]='krogan2s1'
-Krogan2s2=107
-float_ip[$Krogan2s2]="${vboxnet_prefix}.${Krogan2s2}"
-float_name[$Krogan2s2]='krogan2s2'
-Krogan2s3=108
-float_ip[$Krogan2s3]="${vboxnet_prefix}.${Krogan2s3}"
-float_name[$Krogan2s3]='krogan2s3'
+Krogan4=105
+float_ip[$Krogan4]="${vboxnet_prefix}.${Krogan4}"
+float_name[$Krogan4]='krogan4'
+db_slaves[$Krogan4]='krogan4s1 krogan4s2 krogan4s3'
+db_port[$Krogan4]=5432
+db_setup_master[$Krogan4]='tuchanka4a'
+# several slaves separated by space
+db_setup_slaves[$Krogan4]='tuchanka4b tuchanka4c tuchanka4d'
+Krogan4s1=106
+float_ip[$Krogan4s1]="${vboxnet_prefix}.${Krogan4s1}"
+float_name[$Krogan4s1]='krogan4s1'
+Krogan4s2=107
+float_ip[$Krogan4s2]="${vboxnet_prefix}.${Krogan4s2}"
+float_name[$Krogan4s2]='krogan4s2'
+Krogan4s3=108
+float_ip[$Krogan4s3]="${vboxnet_prefix}.${Krogan4s3}"
+float_name[$Krogan4s3]='krogan4s3'
 
-readonly Krogan0a Krogan0b Krogan1 Krogan1s1 Krogan2 Krogan2s1 Krogan2s2 Krogan2s3
+readonly Krogan1a Krogan1b Krogan2 Krogan2s1 Krogan4 Krogan4s1 Krogan4s2 Krogan4s3
 readonly -a float_ip float_name db_slaves db_port db_setup_master db_setup_slaves
 
 # ID кластера совпадает с ID одной (первой) его машины, используется в выборе машины для отправки pcs команд на кластер
 # Имя кластера, используется в pcs cluster setup
-cluster_name[$Tuchanka0a]='krogan0'
+cluster_name[$Tuchanka1a]='tuchanka1'
 # Все виртуалки кластера, двухмерные массивы в bash отсутствуют, имитирую списком разделенным пробелами
-cluster_vms[$Tuchanka0a]='tuchanka0a tuchanka0b'
-cluster_dbs[$Tuchanka0a]="$Krogan0a $Krogan0b"
-
-cluster_name[$Tuchanka1a]='krogan1'
 cluster_vms[$Tuchanka1a]='tuchanka1a tuchanka1b'
-cluster_dbs[$Tuchanka1a]="$Krogan1"
+cluster_dbs[$Tuchanka1a]="$Krogan1a $Krogan1b"
 
-cluster_name[$Tuchanka2a]='krogan2'
-cluster_vms[$Tuchanka2a]='tuchanka2a tuchanka2b tuchanka2c tuchanka2d'
+cluster_name[$Tuchanka2a]='tuchanka2'
+cluster_vms[$Tuchanka2a]='tuchanka2a tuchanka2b'
 cluster_dbs[$Tuchanka2a]="$Krogan2"
+
+cluster_name[$Tuchanka4a]='tuchanka4'
+cluster_vms[$Tuchanka4a]='tuchanka4a tuchanka4b tuchanka4c tuchanka4d'
+cluster_dbs[$Tuchanka4a]="$Krogan4"
 readonly -a cluster_name cluster_vms cluster_dbs
-# Команда, с помощью которой можно загрузить ключ в ssh-agent для работы с виртуалками
-# Возможны варианты, поэтому команда вынесена в конфиг.
-# В default_config эта команда загружает дефолтные ключи из ~/.ssh, пароли для них берет из keychain.
-vm_ssh_load_key='ssh-add -A'

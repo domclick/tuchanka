@@ -104,7 +104,7 @@ do
 			# orphan mode
 			tos orphan 11
 			# orphan parent
-			server witness iburst
+			server ${vm_name[${Witness}]} iburst
 			EOF
 		# for all in the same cluster, but not I
 		for hh in ${hosts}

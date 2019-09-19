@@ -1,0 +1,16 @@
+#!/bin/bash
+# safe bash
+set -o errexit -o noclobber -o nounset -o pipefail -o xtrace
+
+pcs cluster cib original_cib.xml
+cp original_cib.xml configured_cib.xml
+pcs -f configured_cib.xml resource create krogan4DB ocf:heartbeat:pgsqlms bindir=/usr/pgsql-11/bin pgdata=/var/lib/pgsql/krogan4 recovery_template=/var/lib/pgsql/krogan4.paf op monitor interval=15 timeout=10 monitor interval=16 role=Master timeout=20 monitor interval=17 role=Slave timeout=10 meta master notify=true resource-stickiness=10
+pcs -f configured_cib.xml resource create krogan4IP ocf:heartbeat:IPaddr2 nic=eth0 cidr_netmask=24 ip=192.168.89.105
+pcs -f configured_cib.xml resource create krogan4sIP ocf:heartbeat:IPaddr2 nic=eth0 cidr_netmask=24 ip=192.168.89.106 unique_clone_address=true clone interleave=true globally-unique=true resource-stickiness=0 clone-max=3
+pcs -f configured_cib.xml constraint colocation add krogan4IP with master krogan4DB-master INFINITY
+pcs -f configured_cib.xml constraint order promote krogan4DB-master then start krogan4IP symmetrical=false
+pcs -f configured_cib.xml constraint order demote krogan4DB-master then stop krogan4IP symmetrical=false kind=Optional
+pcs -f configured_cib.xml constraint location krogan4sIP-clone rule score=-INFINITY master-krogan4DB lt integer 0
+pcs -f configured_cib.xml constraint colocation add krogan4sIP-clone with slave krogan4DB-master INFINITY
+pcs -f configured_cib.xml constraint order start krogan4DB-master then start krogan4sIP-clone
+pcs cluster cib-push configured_cib.xml --wait diff-against=original_cib.xml

@@ -2,7 +2,8 @@
 # safe bash
 set -o errexit -o noclobber -o nounset -o pipefail -o xtrace
 
-/root/bin/restore1
+/root/bin/restore1a
+/root/bin/restore1b
 pcs cluster start --wait
 sleep 5
 pcs resource cleanup
