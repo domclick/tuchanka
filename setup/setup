@@ -43,16 +43,6 @@ do
 	vm_ssh "$h" 'systemctl restart systemd-modules-load'
 	# Как его настраивать, чтобы работал совместо с pacemaker не знаю
 	vm_ssh "$h" 'systemctl disable --now firewalld --quiet'
-	# Из-за ограничений VirtualBox пришлось сделать две подсетки:
-	# одна для работы кластера на eth0
-	# другая для выхода в Интернет через NAT на eth1 (default gw)
-	# Запрещаю доступ к рабочей подсетке на eth0 через подсеть для выхода в Интернет на eth1 (через default gw)
-	vm_ssh "$h" "cat >>'/etc/rc.local'" <<-EOF
-
-		# Added by tuchanka setup script
-		ip route add prohibit ${vboxnet_prefix}.0/24 protocol static metric 200
-		EOF
-	vm_ssh "$h" "chmod +x '/etc/rc.local'"
 	# for pacemaker
 	echo -e "${hacluster_password}\n${hacluster_password}" | vm_ssh "$h" 'passwd --stdin hacluster'
 	# pacemaker redhat client, REST daemon
@@ -73,11 +63,10 @@ vm_ssh "$h" "cat >>'/etc/ntp.conf'" <<-EOF
 	# Added by tuchanka setup script
 	restrict ${vboxnet_prefix}.0 mask 255.255.255.0 kod nomodify notrap
 	pool ru.pool.ntp.org iburst preempt
-	server ntp21.vniiftri.ru iburst
-	#server ntp1.vniiftri.ru iburst
-	#server ntp2.vniiftri.ru iburst
-	#server ntp3.vniiftri.ru iburst
-	#server ntp4.vniiftri.ru iburst
+	server ntp1.vniiftri.ru iburst
+	server ntp2.vniiftri.ru iburst
+	server ntp3.vniiftri.ru iburst
+	server ntp4.vniiftri.ru iburst
 	# orphan mode
 	tos orphan 10
 	EOF
@@ -95,16 +84,9 @@ do
 		vm_ssh "$h" "cat >>'/etc/ntp.conf'" <<-EOF
 			# Added by tuchanka setup script
 			restrict ${vboxnet_prefix}.0 mask 255.255.255.0 kod nomodify notrap
-			pool ru.pool.ntp.org iburst preempt
-			server ntp21.vniiftri.ru iburst
-			#server ntp1.vniiftri.ru iburst
-			#server ntp2.vniiftri.ru iburst
-			#server ntp3.vniiftri.ru iburst
-			#server ntp4.vniiftri.ru iburst
+			server ${vm_name[${Witness}]} iburst
 			# orphan mode
 			tos orphan 11
-			# orphan parent
-			server ${vm_name[${Witness}]} iburst
 			EOF
 		# for all in the same cluster, but not I
 		for hh in ${hosts}
