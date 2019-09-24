@@ -34,59 +34,64 @@ readonly ssh_config="${root_dir}/ssh_config" ssh_known_hosts="${root_dir}/ssh_kn
 # В default_config эта команда загружает дефолтные ключи из ~/.ssh, пароли для них берет из keychain.
 vm_ssh_load_key='ssh-add -A'
 
+# Cluster ID
+# Номера кластеров, оформленны в виде переменных, чтобы потом было удобнее искать их использовать.
+# 0 фиктивный кластер, по сути это группа серверов общего пользования для оказания вспомогательных услуг.
+readonly Group0=0 Cluster1=1 Cluster2=2 Cluster3=3 Cluster4=4
+
 Witness=251
 vm_ip[$Witness]="${vboxnet_prefix}.${Witness}"
 vm_name[$Witness]='witness'
 # Группа сервисных серверов, оказывающих услуги для всех кластеров, типа quorum device.
-vm_group[$Witness]='/Tuchanka/Tuchanka0'
+vm_group[$Witness]=$Group0
 vm_desc[$Witness]='Witness server for the Tuchanka cluster'
 
 Tuchanka1a=1
 vm_ip[$Tuchanka1a]="${vboxnet_prefix}.${Tuchanka1a}"
 vm_name[$Tuchanka1a]='tuchanka1a'
-vm_group[$Tuchanka1a]='/Tuchanka/Tuchanka1'
+vm_group[$Tuchanka1a]=$Cluster1
 vm_desc[$Tuchanka1a]='Tuchanka1a node of the Tuchanka1 cluster'
 
 Tuchanka1b=2
 vm_ip[$Tuchanka1b]="${vboxnet_prefix}.${Tuchanka1b}"
 vm_name[$Tuchanka1b]='tuchanka1b'
-vm_group[$Tuchanka1b]='/Tuchanka/Tuchanka1'
+vm_group[$Tuchanka1b]=$Cluster1
 vm_desc[$Tuchanka1b]='Tuchanka1b node of the Tuchanka1 cluster'
 
 Tuchanka2a=11
 vm_ip[$Tuchanka2a]="${vboxnet_prefix}.${Tuchanka2a}"
 vm_name[$Tuchanka2a]='tuchanka2a'
-vm_group[$Tuchanka2a]='/Tuchanka/Tuchanka2'
+vm_group[$Tuchanka2a]=$Cluster2
 vm_desc[$Tuchanka2a]='Tuchanka2a node of the Tuchanka2 cluster'
 
 Tuchanka2b=12
 vm_ip[$Tuchanka2b]="${vboxnet_prefix}.${Tuchanka2b}"
 vm_name[$Tuchanka2b]='tuchanka2b'
-vm_group[$Tuchanka2b]='/Tuchanka/Tuchanka2'
+vm_group[$Tuchanka2b]=$Cluster2
 vm_desc[$Tuchanka2b]='Tuchanka2b node of the Tuchanka2 cluster'
 
 Tuchanka4a=21
 vm_ip[$Tuchanka4a]="${vboxnet_prefix}.${Tuchanka4a}"
 vm_name[$Tuchanka4a]='tuchanka4a'
-vm_group[$Tuchanka4a]='/Tuchanka/Tuchanka4'
+vm_group[$Tuchanka4a]=$Cluster4
 vm_desc[$Tuchanka4a]='Tuchanka4a node of the Tuchanka4 cluster'
 
 Tuchanka4b=22
 vm_ip[$Tuchanka4b]="${vboxnet_prefix}.${Tuchanka4b}"
 vm_name[$Tuchanka4b]='tuchanka4b'
-vm_group[$Tuchanka4b]='/Tuchanka/Tuchanka4'
+vm_group[$Tuchanka4b]=$Cluster4
 vm_desc[$Tuchanka4b]='Tuchanka4b node of the Tuchanka4 cluster'
 
 Tuchanka4c=23
 vm_ip[$Tuchanka4c]="${vboxnet_prefix}.${Tuchanka4c}"
 vm_name[$Tuchanka4c]='tuchanka4c'
-vm_group[$Tuchanka4c]='/Tuchanka/Tuchanka4'
+vm_group[$Tuchanka4c]=$Cluster4
 vm_desc[$Tuchanka4c]='Tuchanka4c node of the Tuchanka4 cluster'
 
 Tuchanka4d=24
 vm_ip[$Tuchanka4d]="${vboxnet_prefix}.${Tuchanka4d}"
 vm_name[$Tuchanka4d]='tuchanka4d'
-vm_group[$Tuchanka4d]='/Tuchanka/Tuchanka4'
+vm_group[$Tuchanka4d]=$Cluster4
 vm_desc[$Tuchanka4d]='Tuchanka4d node of the Tuchanka4 cluster'
 readonly Witness Tuchanka1a Tuchanka1b Tuchanka2a Tuchanka2b Tuchanka4a Tuchanka4b Tuchanka4c Tuchanka4d
 readonly -a vm_ip vm_name vm_group vm_desc
@@ -141,18 +146,15 @@ float_name[$Krogan4s3]='krogan4s3'
 readonly Krogan1a Krogan1b Krogan2 Krogan2s1 Krogan4 Krogan4s1 Krogan4s2 Krogan4s3
 readonly -a float_ip float_name db_slaves db_port db_setup_master db_setup_slaves
 
-# ID кластера совпадает с ID одной (первой) его машины, используется в выборе машины для отправки pcs команд на кластер
-# Имя кластера, используется в pcs cluster setup
-cluster_name[$Tuchanka1a]='tuchanka1'
 # Все виртуалки кластера, двухмерные массивы в bash отсутствуют, имитирую списком разделенным пробелами
-cluster_vms[$Tuchanka1a]='tuchanka1a tuchanka1b'
-cluster_dbs[$Tuchanka1a]="$Krogan1a $Krogan1b"
+cluster_vms[$Group0]='witness'
 
-cluster_name[$Tuchanka2a]='tuchanka2'
-cluster_vms[$Tuchanka2a]='tuchanka2a tuchanka2b'
-cluster_dbs[$Tuchanka2a]="$Krogan2"
+cluster_vms[$Cluster1]='tuchanka1a tuchanka1b'
+cluster_dbs[$Cluster1]="$Krogan1a $Krogan1b"
 
-cluster_name[$Tuchanka4a]='tuchanka4'
-cluster_vms[$Tuchanka4a]='tuchanka4a tuchanka4b tuchanka4c tuchanka4d'
-cluster_dbs[$Tuchanka4a]="$Krogan4"
-readonly -a cluster_name cluster_vms cluster_dbs
+cluster_vms[$Cluster2]='tuchanka2a tuchanka2b'
+cluster_dbs[$Cluster2]="$Krogan2"
+
+cluster_vms[$Cluster4]='tuchanka4a tuchanka4b tuchanka4c tuchanka4d'
+cluster_dbs[$Cluster4]="$Krogan4"
+readonly -a cluster_vms cluster_dbs

@@ -12,21 +12,22 @@ readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 . "${lib_dir}/shut_down.bash"
 . "${lib_dir}/tick.bash"
 . "${lib_dir}/wait_healthy.bash"
+. "${lib_dir}/first_vm.bash"
 
 rollback 'setup'
 while true
 do
 	tick+
 	power_on
-	for i in "${!cluster_name[@]}"
+	for c in "${!cluster_dbs[@]}"
 	do
-		vm_ssh "${vm_name[$i]}" "pcs --debug cluster start --all --wait"
-	done;unset i
-	for i in "${!cluster_name[@]}"
+		vm_ssh "$(first_vm $c)" "pcs --debug cluster start --all --wait"
+	done;unset c
+	for c in "${!cluster_dbs[@]}"
 	do
-		wait_healthy $i
-		vm_ssh "${vm_name[$i]}" "pcs --debug cluster stop --all --wait"
-	done;unset i
+		wait_healthy $c
+		vm_ssh "$(first_vm $c)" "pcs --debug cluster stop --all --wait"
+	done;unset c
 	sleep 5
 	shut_down
 done

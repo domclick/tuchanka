@@ -7,6 +7,7 @@ readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 . "${root_dir}/load_config.bash"
 . "${lib_dir}/vm_ssh.bash"
 . "${lib_dir}/wait_healthy.bash"
+. "${lib_dir}/first_vm.bash"
 
 if $autoVirtualBox
 then
@@ -126,12 +127,12 @@ done;unset hosts
 sleep 5
 
 # цикл по кластерам, первичная настройка
-for i in "${!cluster_name[@]}"
+for c in "${!cluster_dbs[@]}"
 do
 	# Нужен любой hostname из кластера для ssh доступа (настройка всех машин через одну)
-	h="${vm_name[$i]}"
-	vm_ssh "$h" "pcs cluster auth ${vm_name[$Witness]} ${cluster_vms[$i]} -u hacluster -p '${hacluster_password}'"
-	vm_ssh "$h" "pcs cluster setup --wait --name ${cluster_name[$i]} --transport udp --encryption 1 ${cluster_vms[$i]}"
+	h="$(first_vm $c)"
+	vm_ssh "$h" "pcs cluster auth ${vm_name[$Witness]} ${cluster_vms[$c]} -u hacluster -p '${hacluster_password}'"
+	vm_ssh "$h" "pcs cluster setup --wait --name tuchanka${c} --transport udp --encryption 1 ${cluster_vms[$c]}"
 	# Иногда при работе кластера, в том числе при cluster start --all, возникает отказ в работе.
 	# Выглядит как CPU load 114, предполагаю, что при некоторых условиях pacemaker начинает
 	# бесконечно размножать процессы. Надеюсь эта опция поможет решить эту проблему.
@@ -140,7 +141,7 @@ do
 	# на сервере или около того. Поскольку устанавливать property можно только после поднятия кластера,
 	# а проблему появляется иногда при поднятии кластера, выставляю эту опцию еще до поднятия кластера,
 	# путем редактирования CIB файла напрямую.
-	for hh in ${cluster_vms[$i]}
+	for hh in ${cluster_vms[$c]}
 	do
 		vm_ssh "$hh" "pcs -f '${cib}' property set node-action-limit=2"
 	done;unset hh
@@ -156,14 +157,14 @@ do
 	vm_ssh "$h" 'pcs property set stonith-enabled=true'
 	# Должно быть примерно в 2 раза больше, чем SBD_WATCHDOG_TIMEOUT в /etc/sysconfig/sbd в виртуалке
 	vm_ssh "$h" 'pcs property set stonith-watchdog-timeout=10'
-done;unset i
+done;unset c
 
 # Цикл по DB
-for i in "${!db_port[@]}"
+for db in "${!db_port[@]}"
 do
 	# config_name используется в именах конфигов, соотвествует имени float_ip соответствующего мастеру этой DB
-	config_name="${float_name[$i]}" pgport="${db_port[$i]}"
-	m="${db_setup_master[$i]}"
+	config_name="${float_name[$db]}" pgport="${db_port[$db]}"
+	m="${db_setup_master[$db]}"
 	pgdata="${pgsql_dir}/${config_name}" custom_conf="${config_name}.conf" restore_paf="${config_name}.paf" pacemaker_script="${config_name}"
 	restore_sh="restore${config_name#'krogan'}"
 	echo "Configure ${config_name}"
@@ -177,7 +178,7 @@ do
 	vm_ssh -t "$m" "su -l postgres -c \"pg_ctl start --wait --options='--synchronous_standby_names=' --pgdata='${pgdata}'\""
 	# создаю пользователя для репликации, пароль захардкожен, возможно в будущем будет другой способ аутентикации
 	vm_ssh "$m" "psql postgres postgres --no-psqlrc --port=${pgport} --command=\"create user replicant with password 'Nexus 6' replication\""
-	for h in ${db_setup_slaves[$i]}
+	for h in ${db_setup_slaves[$db]}
 	do
 		vm_cp2pgsql "$h" "${upload_dir}/${h}/${custom_conf}" "${pgsql_dir}/${custom_conf}"
 		vm_cp2pgsql "$h" "${upload_dir}/${h}/${restore_paf}" "${pgsql_dir}/${restore_paf}"
@@ -192,7 +193,7 @@ do
 		done
 	done;unset h
 	# now stoping, master must be first
-	for h in $m ${db_setup_slaves[$i]}
+	for h in $m ${db_setup_slaves[$db]}
 	do
 		vm_ssh "$h" "su -l postgres -c \"pg_ctl stop --wait --pgdata='${pgdata}'\""
 		vm_cp "$h" "${pcs_dir}/${pacemaker_script}" "${pacemaker_script}"
@@ -218,17 +219,17 @@ do
 	sleep 5
 	# список команд для pcs для создания ресурса DB в кластере pacemaker
 	vm_ssh "$m" "./'${pacemaker_script}'"
-done;unset i
+done;unset db
 
 # heartbeat DB
 # И строго говоря надо сначала надо убедиться что postgresql встал и есть плавающий ip и работать через плавающий ip.
 # Но из-за проблем с отсутствием аутентификации (на данном этапе), работать буду через ssh и peer аутентификацию.
 # Цикл по DB
-for i in "${!db_port[@]}"
+for db in "${!db_port[@]}"
 do
-	pgport="${db_port[$i]}"
-	float_master="${float_name[$i]}"
-	master="${db_setup_master[$i]}"
+	pgport="${db_port[$db]}"
+	float_master="${float_name[$db]}"
+	master="${db_setup_master[$db]}"
 	echo "Install heartbeat into ${master}"
 	# Ожидание поднятия плавающих ip
 	echo "Waiting for ping ${float_master}"
@@ -237,18 +238,18 @@ do
 		sleep 5
 	done
 	vm_ssh "$master" "psql --no-psqlrc --port=${pgport} postgres postgres" <"${heartbeat_dir}/heartbeat.sql"
-done;unset i
+done;unset db
 
 # Проверка работоспособности для дополнительной уверенности (используется heatbeat DB)
-for i in "${!cluster_name[@]}"
+for c in "${!cluster_dbs[@]}"
 do
-	wait_healthy $i
-done;unset i
+	wait_healthy $c
+done;unset c
 # цикл по кластерам, завершение перед выключением
-for i in "${!cluster_name[@]}"
+for c in "${!cluster_dbs[@]}"
 do
-	vm_ssh "${vm_name[$i]}" "pcs cluster stop --all --wait"
-done;unset i
+	vm_ssh "$(first_vm $c)" "pcs cluster stop --all --wait"
+done;unset c
 # При `pg_ctl stop --wait` pg_ctl ждет когда postgresql удалит свой pid файл.
 # Есть подозрение, что этого недостаточно, поставил дополнительную задержку.
 # Тесты подвердили полезность задежки после `pcs cluster stop --all --wait`

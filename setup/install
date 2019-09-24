@@ -56,11 +56,11 @@ unset ssh_fingerprint
 # add key to the ssh-agent, if abscent
 vm_ssh_add
 ssh_hosts=''
-for i in "${!vm_name[@]}"
+for vm in "${!vm_name[@]}"
 do
-	echo -e "Host ${vm_name[$i]}\n\tHostName ${vm_ip[$i]}"
-	ssh_hosts="${ssh_hosts} ${vm_name[$i]}"
-done >>"${ssh_config}";unset i
+	echo -e "Host ${vm_name[$vm]}\n\tHostName ${vm_ip[$vm]}"
+	ssh_hosts="${ssh_hosts} ${vm_name[$vm]}"
+done >>"${ssh_config}";unset vm
 cat <<EOF >>"${ssh_config}"
 Host ${ssh_hosts}
 	ForwardAgent yes
@@ -82,14 +82,14 @@ Host ${ssh_hosts}
 EOF
 unset ssh_hosts
 # generate etc_hosts file
-for i in "${!vm_name[@]}"
+for vm in "${!vm_name[@]}"
 do
-	echo -e "${vm_ip[$i]}\t${vm_name[$i]} ${vm_name[$i]}.tuchanka"
-done > "${etc_hosts}";unset i
-for i in "${!float_ip[@]}"
+	echo -e "${vm_ip[$vm]}\t${vm_name[$vm]} ${vm_name[$vm]}.tuchanka"
+done > "${etc_hosts}";unset vm
+for db in "${!float_ip[@]}"
 do
-	echo -e "${float_ip[$i]}\t${float_name[$i]} ${float_name[$i]}.tuchanka"
-done >> "${etc_hosts}";unset i
+	echo -e "${float_ip[$db]}\t${float_name[$db]} ${float_name[$db]}.tuchanka"
+done >> "${etc_hosts}";unset db
 echo -e "${vboxnet_hostip}\tvirtualbox virtualbox.tuchanka" >> "${etc_hosts}"
 
 if $autoVirtualBox
@@ -113,20 +113,20 @@ then
 	fi
 
 	# Виртуалки
-	for i in "${!vm_name[@]}"
+	for vm in "${!vm_name[@]}"
 	do
-		h="${vm_name[$i]}"
+		h="${vm_name[$vm]}"
 		echo "Create ${h}"
 		# get host dir
-		VBoxManage createvm --name "$h" --groups "${vm_group[$i]}" --ostype RedHat_64 --register
+		VBoxManage createvm --name "$h" --groups "/Tuchanka/Tuchanka${vm_group[$vm]}" --ostype RedHat_64 --register
 		if [ "$h" = "${vm_name[${Witness}]}" ]
 		then
-			VBoxManage modifyvm "${h}" --description "${vm_desc[$i]}" --memory $RAM_MiB --vram=$VRAM_MiB --boot1 dvd --boot2 disk --boot3 none --boot4 none --rtcuseutc on --graphicscontroller vboxsvga --firmware bios --defaultfrontend headless --nic1 hostonly --nictype1 virtio --hostonlyadapter1 "${vboxnet_if}" --nic2 nat --nictype2 virtio --mouse usb --keyboard usb --audio none --cpus 2 --iconfile "${root_dir}/images/krogan.png"
+			VBoxManage modifyvm "${h}" --description "${vm_desc[$vm]}" --memory $RAM_MiB --vram=$VRAM_MiB --boot1 dvd --boot2 disk --boot3 none --boot4 none --rtcuseutc on --graphicscontroller vboxsvga --firmware bios --defaultfrontend headless --nic1 hostonly --nictype1 virtio --hostonlyadapter1 "${vboxnet_if}" --nic2 nat --nictype2 virtio --mouse usb --keyboard usb --audio none --cpus 2 --iconfile "${root_dir}/images/krogan.png"
 			vboxvm_vdi="$(vboxvm_dir "${h}")/${h}.vdi"
 			# На witness proxy cache и (будет) S3 файловый сервер, поэтому размер в два раза больше
 			VBoxManage createmedium disk --filename "${vboxvm_vdi}" --variant Fixed --size $(( $HDD_MiB*2 ))
 		else
-			VBoxManage modifyvm "${h}" --description "${vm_desc[$i]}" --memory $RAM_MiB --vram=$VRAM_MiB --boot1 dvd --boot2 disk --boot3 none --boot4 none --rtcuseutc on --graphicscontroller vboxsvga --firmware bios --defaultfrontend headless --nic1 hostonly --nictype1 virtio --hostonlyadapter1 "${vboxnet_if}" --mouse usb --keyboard usb --audio none --cpus 2 --iconfile "${root_dir}/images/krogan.png"
+			VBoxManage modifyvm "${h}" --description "${vm_desc[$vm]}" --memory $RAM_MiB --vram=$VRAM_MiB --boot1 dvd --boot2 disk --boot3 none --boot4 none --rtcuseutc on --graphicscontroller vboxsvga --firmware bios --defaultfrontend headless --nic1 hostonly --nictype1 virtio --hostonlyadapter1 "${vboxnet_if}" --mouse usb --keyboard usb --audio none --cpus 2 --iconfile "${root_dir}/images/krogan.png"
 			vboxvm_vdi="$(vboxvm_dir "${h}")/${h}.vdi"
 			VBoxManage createmedium disk --filename "${vboxvm_vdi}" --variant Fixed --size $HDD_MiB
 		fi
@@ -135,9 +135,9 @@ then
 		VBoxManage storagectl "$h" --name 'DVDController' --add sata --hostiocache on --bootable on
 		VBoxManage storageattach "$h" --storagectl 'DiskController' --type hdd --port 0 --device 0 --medium "${vboxvm_vdi}"
 		VBoxManage storageattach "$h" --storagectl 'DVDController' --type dvddrive --port 0 --device 0 --medium "${dvd_iso}"
-		VBoxManage unattended install "$h" --iso="${dvd_iso}" --full-user-name="${vm_ip[$i]}" --locale='ru_RU' --time-zone="${time_zone}" --hostname="${h}.tuchanka" --package-selection-adjustment='minimal' --script-template="${setup_dir}/redhat7.kickstart" --post-install-command="mkdir -m 700 \"\${MY_TARGET}/root/.ssh\" && echo '$(cat "${ssh_public_key}")' >>\"\${MY_TARGET}/root/.ssh/authorized_keys\"" --start-vm='headless' --extra-install-kernel-parameters='net.ifnames=0 biosdevname=0 ks=cdrom:/ks.cfg'
+		VBoxManage unattended install "$h" --iso="${dvd_iso}" --full-user-name="${vm_ip[$vm]}" --locale='ru_RU' --time-zone="${time_zone}" --hostname="${h}.tuchanka" --package-selection-adjustment='minimal' --script-template="${setup_dir}/redhat7.kickstart" --post-install-command="mkdir -m 700 \"\${MY_TARGET}/root/.ssh\" && echo '$(cat "${ssh_public_key}")' >>\"\${MY_TARGET}/root/.ssh/authorized_keys\"" --start-vm='headless' --extra-install-kernel-parameters='net.ifnames=0 biosdevname=0 ks=cdrom:/ks.cfg'
 		echo "Created ${h}"
-	done;unset i h
+	done;unset vm h
 else
 	echo 'При автоматической установке создается интерфейс админского компьютера во внутренней подсетке кластера.'
 	echo 'Создаются виртуалки, на них устанавливается CentOS с предварительной настройкой в инсталляторе.'
@@ -148,20 +148,20 @@ fi
 
 # Жду завершение установки, записываю публичный ключ хоста, выключаю
 declare ssh_key
-for i in "${!vm_name[@]}"
+for vm in "${!vm_name[@]}"
 do
-	echo "Waiting for ssh on ${vm_name[$i]}"
+	echo "Waiting for ssh on ${vm_name[$vm]}"
 	# ssh-keyscan иногда возвращает при ошибках код отличный от 0, иногда нет.
 	while true
 	do
-		ssh_key="$(ssh-keyscan -t ssh-ed25519 "${vm_ip[$i]}" 2>/dev/null || true)"
+		ssh_key="$(ssh-keyscan -t ssh-ed25519 "${vm_ip[$vm]}" 2>/dev/null || true)"
 		[ -n "${ssh_key}" ] && break
 		sleep 5
 	done
 	echo "${ssh_key}" >>"${ssh_known_hosts}"
 	# kdump отключен в kickstart файле, выключаю сервис, чтобы systemctl is-system-runnig корректно работал
-	vm_ssh "${vm_name[$i]}" 'systemctl disable kdump.service --quiet'
-done;unset i
+	vm_ssh "${vm_name[$vm]}" 'systemctl disable kdump.service --quiet'
+done;unset vm
 unset -v ssh_key
 
 # setup proxy

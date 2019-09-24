@@ -12,15 +12,15 @@ then
 	. "${lib_dir}/power_off.bash"
 
 	power_off
-	for i in "${!vm_name[@]}"
+	for vm in "${!vm_name[@]}"
 	do
-		is=$(VBoxManage list vms | is_grep "^\"${vm_name[$i]}\" ")
+		is=$(VBoxManage list vms | is_grep "^\"${vm_name[$vm]}\" ")
 		if $is
 		then
-			echo "destroy ${vm_name[$i]}"
-			VBoxManage unregistervm "${vm_name[$i]}" --delete
+			echo "destroy ${vm_name[$vm]}"
+			VBoxManage unregistervm "${vm_name[$vm]}" --delete
 		fi
-	done;unset i is
+	done;unset vm is
 
 	# get name for hostonlyif
 	vboxnet_if="$(VBoxManage list hostonlyifs|

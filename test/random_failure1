@@ -4,10 +4,9 @@ set -o errexit -o noclobber -o nounset -o pipefail -o xtrace
 
 readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 . "${root_dir}/load_config.bash"
-
 . "${lib_dir}/tick.bash"
 . "${lib_dir}/random_word.bash"
-. "${lib_dir}/first_word.bash"
+. "${lib_dir}/first_vm.bash"
 . "${lib_dir}/now.bash"
 . "${lib_dir}/rollback.bash"
 . "${lib_dir}/power_on.bash"
@@ -18,27 +17,7 @@ readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 . "${lib_dir}/wait_stable.bash"
 
 # $@ список кластеров, которые надо протестировать, если пустой, то все
-# надо преобразовать список имен в список ID
-declare clusters
-if (( "$#" ))
-then
-	while (( $# ))
-	do
-		for i in "${!cluster_name[@]}"
-		do
-			if [ "$1" = "${cluster_name[$i]}" ]
-			then
-				clusters="${clusters} $i"
-				break
-			fi
-		done;unset i
-		shift
-	done
-	# remove leading ' '
-	clusters="${clusters#' '}"
-else # Если пустой, то все
-	clusters="${!cluster_vms[*]}"
-fi
+readonly clusters="${*:-${!cluster_dbs[*]}}"
 
 # Проверяю, открыт ли 4, если нет, перенаправляю его на /dev/null
 if ! { >&4; } 2>/dev/null
@@ -130,7 +109,7 @@ function test_node {
 	time=$(now) # засекаю время
 	${break_node[$f]} "$h"
 	sleep 5 # some time to propagate events
-	tick "Ready? ${cluster_name[$c]}"
+	tick "Ready? tuchanka${c}"
 	wait_ready $c
 	time=$(($(now)-$time))
 	tick "${break_node[$f]} reaction ${time}s"
@@ -148,32 +127,32 @@ function test_node {
 }
 readonly -f test_node
 
-for i in $clusters
+for c in $clusters
 do
 	echo >&4
-	tick "Rollback ${cluster_name[$i]}"
-	rollback 'setup' ${cluster_vms[$i]}
-	tick "Boot ${cluster_name[$i]}"
-	power_on ${cluster_vms[$i]}
-	tick "Start ${cluster_name[$i]}"
-	vm_ssh "${vm_name[$i]}" "pcs cluster start --all"
-done;unset i
+	tick "Rollback tuchanka${c}"
+	rollback 'setup' ${cluster_vms[$c]}
+	tick "Boot tuchanka${c}"
+	power_on ${cluster_vms[$c]}
+	tick "Start tuchanka${c}"
+	vm_ssh "$(first_vm $c)" "pcs cluster start --all"
+done;unset c
 
 # check all failure
 for f in ${!break_node[@]}
 do
-	for i in $clusters
+	for c in $clusters
 	do
-		test_node $i $f
-	done;unset i
+		test_node $c $f
+	done;unset c
 done;unset f
 
 # random failure
 while true
 do
-	for i in $clusters
+	for c in $clusters
 	do
 		f=$(random_word ${!break_node[@]})
-		test_node $i $f
-	done;unset i f
+		test_node $c $f
+	done;unset c f
 done

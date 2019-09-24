@@ -9,22 +9,13 @@ readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 . "${lib_dir}/power_off.bash"
 . "${lib_dir}/rollback.bash"
 
-cluster_hb1[$Tuchanka1a]="'${heartbeat_dir}/heart1a'"
-cluster_hb2[$Tuchanka1a]="'${heartbeat_dir}/heart1b'"
-cluster_test[$Tuchanka1a]="'${test_dir}/random_failure1' 'tuchanka1' 3>'${test_dir}/test1.log' 4>'${test_dir}/monitor1'"
-cluster_log[$Tuchanka1a]="cat '${test_dir}/test1.log'"
-cluster_mon[$Tuchanka1a]="${test_dir}/monitor1"
-cluster_hb1[$Tuchanka2a]="'${heartbeat_dir}/heart2'"
-cluster_hb2[$Tuchanka2a]="'${heartbeat_dir}/reader2'"
-cluster_test[$Tuchanka2a]="'${test_dir}/random_failure1' 'tuchanka2' 3>'${test_dir}/test2.log' 4>'${test_dir}/monitor2'"
-cluster_log[$Tuchanka2a]="cat '${test_dir}/test2.log'"
-cluster_mon[$Tuchanka2a]="${test_dir}/monitor2"
-cluster_hb1[$Tuchanka4a]="'${heartbeat_dir}/heart4'"
-cluster_hb2[$Tuchanka4a]="'${heartbeat_dir}/reader4'"
-cluster_test[$Tuchanka4a]="'${test_dir}/random_failure1' 'tuchanka4' 3>'${test_dir}/test4.log' 4>'${test_dir}/monitor4'"
-cluster_log[$Tuchanka4a]="cat '${test_dir}/test4.log'"
-cluster_mon[$Tuchanka4a]="${test_dir}/monitor4"
-readonly -a cluster_hb1 cluster_hb2 cluster_test cluster_log cluster_mon
+cluster_hb1[$Cluster1]="'${heartbeat_dir}/heart1a'"
+cluster_hb2[$Cluster1]="'${heartbeat_dir}/heart1b'"
+cluster_hb1[$Cluster2]="'${heartbeat_dir}/heart2'"
+cluster_hb2[$Cluster2]="'${heartbeat_dir}/reader2'"
+cluster_hb1[$Cluster4]="'${heartbeat_dir}/heart4'"
+cluster_hb2[$Cluster4]="'${heartbeat_dir}/reader4'"
+readonly -a cluster_hb1 cluster_hb2
 declare -a pane_hb1 pane_hb2 pane_mon_host pane_log pane_top pane_mon pane_test
 
 
@@ -34,28 +25,28 @@ then
 	tmux set-option mouse on
 	tmux set-option status off
 	tmux set-window-option remain-on-exit on
-	declare -i n=${#cluster_name[@]}
-	for i in "${!cluster_name[@]}"
+	declare -i n=${#cluster_dbs[@]}
+	for c in ${!cluster_dbs[@]}
 	do
-		pane_test[$i]="$(tmux display-message -p '#{pane_id}')"
+		pane_test[$c]="$(tmux display-message -p '#{pane_id}')"
 		if [ $n -gt 1 ]
 		then
 			tmux split-window -h -p $((100-100/n))
 			let n=n-1
 		fi
-	done; unset i n
-	for i in "${!cluster_name[@]}"
+	done; unset c n
+	for c in ${!cluster_dbs[@]}
 	do
-		tmux respawn-pane -t "${pane_test[$i]}" -k "${cluster_test[$i]}"
-		pane_mon[$i]="$(tmux split-window -t "${pane_test[$i]}" -P -F '#{pane_id}' -v -b -l $((41+6+5)) true)"
-		pane_top[$i]="$(tmux split-window -P -F '#{pane_id}' -v -b -l $((6+5)) true)"
-		pane_log[$i]="$(tmux split-window -P -F '#{pane_id}' -v -b -l 5 "${cluster_log[$i]}")"
-		pane_hb1[$i]="$(tmux split-window -P -F '#{pane_id}' -h -b -l 10 "${cluster_hb1[$i]}")"
-		pane_hb2[$i]="$(tmux split-window -P -F '#{pane_id}' -v -l 3 "${cluster_hb2[$i]}")"
-		pane_mon_host[$i]="$(tmux split-window -P -F '#{pane_id}' -v -l 1 \
-			"'${test_dir}/random_failure_monitor_switcher' '${pane_mon[$i]}' '${pane_top[$i]}' <'${cluster_mon[$i]}'")"
-	done
-	tmux select-pane -t "${pane_mon[$Tuchanka2a]}"
+		tmux respawn-pane -t "${pane_test[$c]}" -k "'${test_dir}/random_failure1' ${c} 3>'${test_dir}/test${c}.log' 4>'${test_dir}/monitor${c}'"
+		pane_mon[$c]="$(tmux split-window -t "${pane_test[$c]}" -P -F '#{pane_id}' -v -b -l $((41+6+5)) true)"
+		pane_top[$c]="$(tmux split-window -P -F '#{pane_id}' -v -b -l $((6+5)) true)"
+		pane_log[$c]="$(tmux split-window -P -F '#{pane_id}' -v -b -l 5 "cat '${test_dir}/test${c}.log'")"
+		pane_hb1[$c]="$(tmux split-window -P -F '#{pane_id}' -h -b -l 10 "${cluster_hb1[$c]}")"
+		pane_hb2[$c]="$(tmux split-window -P -F '#{pane_id}' -v -l 3 "${cluster_hb2[$c]}")"
+		pane_mon_host[$c]="$(tmux split-window -P -F '#{pane_id}' -v -l 1 \
+			"'${test_dir}/random_failure_monitor_switcher' '${pane_mon[$c]}' '${pane_top[$c]}' <'${test_dir}/monitor${c}'")"
+	done; unset c
+	tmux select-pane -t "${pane_mon[$Cluster2]}"
 
 	rollback 'setup' "${vm_name[$Witness]}"
 	power_on "${vm_name[$Witness]}"
