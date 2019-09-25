@@ -257,6 +257,7 @@ sleep 5
 
 if $autoVirtualBox
 then
+	delete_snapshot 'setup'
 	snapshot 'setup' 'The snapshot was taken at the end of the "setup" script.'
 else
 	echo 'При автоматической установке здесь сохраняется snapshot с настроенным кластером и установленной БД "heartbeat".'

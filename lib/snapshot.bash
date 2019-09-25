@@ -3,7 +3,7 @@
 # остальные - VM имена, которые надо откатить, если пусто - все
 . "${lib_dir}/is_function_absent.bash"
 . "${lib_dir}/shut_down.bash"
-. "${lib_dir}/is_grep.bash"
+. "${lib_dir}/delete_snapshot.bash"
 
 if is_function_absent 'snapshot'
 then
@@ -11,20 +11,14 @@ then
 		local snapshot_name="$1" snapshot_description="$2"
 		shift 2
 		local vms="${*:-"${vm_name[*]}"}"
-		local vm is
+		local vm
 
 		shut_down $vms
 
 		for vm in $vms
 		do
 			echo "Snapshot ${vm} as \"${snapshot_name}\""
-			# VBoxManage snapshot возвращает 1 если нет снэпшотов
-			# перехватываю ошибку и игнорирую.
-			is=$({ VBoxManage snapshot "$vm" list --machinereadable || [ $? -eq 1 ];} | is_grep "^SnapshotName\(-[[:digit:]]\+\)\?=\"${snapshot_name}\"\$")
-			if $is
-			then
-				VBoxManage snapshot "$vm" delete "$snapshot_name"
-			fi
+			delete_snapshot "$snapshot_name" "$vm"
 			VBoxManage snapshot "$vm" take "$snapshot_name" --description "$snapshot_description"
 			sleep 1
 		done;unset vm
