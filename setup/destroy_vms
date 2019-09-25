@@ -9,18 +9,9 @@ readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 
 if $autoVirtualBox
 then
-	. "${lib_dir}/power_off.bash"
+	. "${lib_dir}/destroy_vm.bash"
 
-	power_off
-	for vm in "${!vm_name[@]}"
-	do
-		is=$(VBoxManage list vms | is_grep "^\"${vm_name[$vm]}\" ")
-		if $is
-		then
-			echo "destroy ${vm_name[$vm]}"
-			VBoxManage unregistervm "${vm_name[$vm]}" --delete
-		fi
-	done;unset vm is
+	destroy_vm
 
 	# get name for hostonlyif
 	vboxnet_if="$(VBoxManage list hostonlyifs|
