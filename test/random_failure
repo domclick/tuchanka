@@ -13,6 +13,8 @@ cluster_hb1[$Cluster1]="'${heartbeat_dir}/heart1a'"
 cluster_hb2[$Cluster1]="'${heartbeat_dir}/heart1b'"
 cluster_hb1[$Cluster2]="'${heartbeat_dir}/heart2'"
 cluster_hb2[$Cluster2]="'${heartbeat_dir}/reader2'"
+cluster_hb1[$Cluster3]="'${heartbeat_dir}/heart3'"
+cluster_hb2[$Cluster3]="'${heartbeat_dir}/reader3'"
 cluster_hb1[$Cluster4]="'${heartbeat_dir}/heart4'"
 cluster_hb2[$Cluster4]="'${heartbeat_dir}/reader4'"
 readonly -a cluster_hb1 cluster_hb2
@@ -32,21 +34,21 @@ then
 		if [ $n -gt 1 ]
 		then
 			tmux split-window -h -p $((100-100/n))
-			let n=n-1
+			let n-=1
 		fi
 	done; unset c n
 	for c in ${!cluster_dbs[@]}
 	do
 		tmux respawn-pane -t "${pane_test[$c]}" -k "'${test_dir}/random_failure1' ${c} 3>'${test_dir}/test${c}.log' 4>'${test_dir}/monitor${c}'"
-		pane_mon[$c]="$(tmux split-window -t "${pane_test[$c]}" -P -F '#{pane_id}' -v -b -l $((41+6+5)) true)"
-		pane_top[$c]="$(tmux split-window -P -F '#{pane_id}' -v -b -l $((6+5)) true)"
+		pane_mon[$c]="$(tmux split-window -t "${pane_test[$c]}" -P -F '#{pane_id}' -v -b -l $((41+5+5)) true)"
+		pane_top[$c]="$(tmux split-window -P -F '#{pane_id}' -v -b -l $((5+5)) true)"
 		pane_log[$c]="$(tmux split-window -P -F '#{pane_id}' -v -b -l 5 "cat '${test_dir}/test${c}.log'")"
 		pane_hb1[$c]="$(tmux split-window -P -F '#{pane_id}' -h -b -l 10 "${cluster_hb1[$c]}")"
 		pane_hb2[$c]="$(tmux split-window -P -F '#{pane_id}' -v -l 3 "${cluster_hb2[$c]}")"
 		pane_mon_host[$c]="$(tmux split-window -P -F '#{pane_id}' -v -l 1 \
 			"'${test_dir}/random_failure_monitor_switcher' '${pane_mon[$c]}' '${pane_top[$c]}' <'${test_dir}/monitor${c}'")"
 	done; unset c
-	tmux select-pane -t "${pane_mon[$Cluster2]}"
+	tmux select-pane -t "${pane_mon[$Cluster3]}"
 
 	rollback 'setup' "${vm_name[$Witness]}"
 	power_on "${vm_name[$Witness]}"
@@ -58,3 +60,5 @@ if ! tmux has-session -t tuchanka_test_random_failure
 then
 	power_off
 fi
+
+exit 0

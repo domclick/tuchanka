@@ -1,0 +1,147 @@
+#!/bin/bash
+# Устанавливает пакеты в указанную виртуалку
+# Используется как один из параллельных сопроцессов в setup/install
+# safe bash
+set -o errexit -o noclobber -o nounset -o pipefail -o xtrace -o errtrace
+# $1 ID виртуалки, с которой работать
+vm="$1"
+# Запускаться будет в pane tmux, которая автоматический закрывается, поэтому ставлю паузу на errexit.
+trap "read -p 'Error is detected, the installation is interupted. Press Enter'" 'ERR'
+# get config
+readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
+. "${root_dir}/load_config.bash"
+. "${lib_dir}/vm_ssh.bash"
+. "${lib_dir}/snapshot.bash"
+. "${lib_dir}/is_snapshot.bash"
+if $autoVirtualBox
+then
+	. "${lib_dir}/vboxvm_dir.bash"
+fi
+
+# hostname
+h="${vm_name[$vm]}"
+if $autoVirtualBox
+then
+	# Виртуалки
+	echo "Create ${h}"
+	VBoxManage createvm --name "$h" --groups "/Tuchanka/Tuchanka${vm_group[$vm]}" --ostype RedHat_64 --register
+	# get host dir
+	vboxvm_vdi="$(vboxvm_dir "${h}")/${h}.vdi"
+	if [ "$h" = "${vm_name[${Witness}]}" ]
+	then
+		# vboxnet_if экспортирована в родительском скрипте
+		VBoxManage modifyvm "${h}" --description "${vm_desc[$vm]}" --memory $RAM_MiB --vram=$VRAM_MiB --boot1 dvd --boot2 disk --boot3 none --boot4 none --rtcuseutc on --graphicscontroller vboxsvga --firmware bios --defaultfrontend headless --nic1 hostonly --nictype1 virtio --hostonlyadapter1 "${vboxnet_if}" --nic2 nat --nictype2 virtio --mouse usb --keyboard usb --audio none --cpus $CPUs --cpuexecutioncap $CPU_execution_cap --iconfile "${root_dir}/images/krogan.png"
+		# На witness proxy cache и (будет) S3 файловый сервер, поэтому размер в два раза больше
+		VBoxManage createmedium disk --filename "${vboxvm_vdi}" --size $(( $HDD_MiB*2 ))
+	else
+		VBoxManage modifyvm "${h}" --description "${vm_desc[$vm]}" --memory $RAM_MiB --vram=$VRAM_MiB --boot1 dvd --boot2 disk --boot3 none --boot4 none --rtcuseutc on --graphicscontroller vboxsvga --firmware bios --defaultfrontend headless --nic1 hostonly --nictype1 virtio --hostonlyadapter1 "${vboxnet_if}" --mouse usb --keyboard usb --audio none --cpus $CPUs --cpuexecutioncap $CPU_execution_cap --iconfile "${root_dir}/images/krogan.png"
+		VBoxManage createmedium disk --filename "${vboxvm_vdi}" --size $HDD_MiB
+	fi
+	VBoxManage storagectl "$h" --name 'DiskController' --add sas --hostiocache off --bootable on
+	# кэширование образа dvd для ускорения установки
+	VBoxManage storagectl "$h" --name 'DVDController' --add sata --hostiocache on --bootable on
+	VBoxManage storageattach "$h" --storagectl 'DiskController' --type hdd --port 0 --device 0 --medium "${vboxvm_vdi}"
+	VBoxManage storageattach "$h" --storagectl 'DVDController' --type dvddrive --port 0 --device 0 --medium "${dvd_iso}"
+	VBoxManage unattended install "$h" --iso="${dvd_iso}" --full-user-name="${vm_ip[$vm]}" --locale='ru_RU' --time-zone="${time_zone}" --hostname="${h}.tuchanka" --package-selection-adjustment='minimal' --script-template="${setup_dir}/redhat.kickstart" --post-install-command="mkdir -m 700 \"\${MY_TARGET}/root/.ssh\" && echo '$(cat "${ssh_public_key}")' >>\"\${MY_TARGET}/root/.ssh/authorized_keys\"" --start-vm='headless' --extra-install-kernel-parameters='net.ifnames=0 biosdevname=0 ks=cdrom:/ks.cfg'
+	echo "Created ${h}"
+else
+	echo 'При автоматической установке:'
+	echo 'Создаются виртуалки, на них устанавливается CentOS с предварительной настройкой в инсталляторе.'
+	echo 'И публичный ключ сисадмина записывается пользователю root.'
+	echo 'А сейчас ручной режим и поэтому все эти действия необходимо выполнить вручную.'
+	echo 'Дальнейшее выполнение скрипта ожидает, что на серверах кластера уже запущен ssh.'
+	read -p 'when ready press Enter'
+fi
+
+# Жду завершение установки, записываю публичный ключ хоста
+echo "Waiting for ssh on ${h}"
+# ssh-keyscan иногда возвращает при ошибках код отличный от 0, иногда нет.
+while true
+do
+	ssh_key="$(ssh-keyscan -t ssh-ed25519 "${vm_ip[$vm]}" 2>/dev/null || true)"
+	[ -n "${ssh_key}" ] && break
+	sleep 5
+done;
+# Чтобы не было конкурентной записи в файл ставлю блокировку в tmux
+tmux wait-for -L tuchanka_install_soft_lock_ssh_known_hosts
+echo "${ssh_key}" >>"${ssh_known_hosts}"
+tmux wait-for -U tuchanka_install_soft_lock_ssh_known_hosts
+unset ssh_key
+
+# rename hostname, remove fake domain
+vm_ssh "$h" "echo ${h} >|/etc/hostname"
+# add etc_hosts to /etc/hosts
+vm_ssh "$h" 'cat >>/etc/hosts' <"${etc_hosts}"
+# kdump отключен в kickstart файле, выключаю сервис, чтобы systemctl is-system-runnig корректно работал
+# при следующей загрузке
+vm_ssh "$h" 'systemctl disable --now kdump.service --quiet'
+# Русская локаля с английским текстом
+vm_ssh "$h" 'localectl set-locale LANG=ru_RU.UTF-8 LC_MESSAGES=en_US.UTF-8 LANGUAGE=en'
+echo "Install soft to $h"
+if [ "$h" = "${vm_name[${Witness}]}" ]
+then
+	# setup proxy
+	h=${vm_name[${Witness}]}
+	vm_ssh "$h" 'yum --assumeyes install squid'
+	vm_ssh "$h" 'mv /etc/squid/squid.conf /etc/squid/squid.conf.origin'
+	vm_cp "$h" "${upload_dir}/${h}/squid.conf" '/etc/squid/squid.conf'
+	vm_ssh "$h" 'systemctl enable --now squid.service --quiet'
+else
+	# Network manager, бывает, глючит, на обычных vm (не witness) он не нужен
+	vm_ssh "$h" 'systemctl disable --now NetworkManager.service --quiet'
+	vm_ssh "$h" 'systemctl disable --now NetworkManager-wait-online.service --quiet'
+fi
+# отключаю fastestmirror.conf, чтобы не мешал proxy
+vm_ssh "$h" "sed -e '/^enabled=1\$/ s//enabled=0/' -i /etc/yum/pluginconf.d/fastestmirror.conf"
+vm_ssh "$h" "sed -e '/^# PUT YOUR REPOS HERE/ i proxy=${proxy_url}\n' -i /etc/yum.conf"
+echo 'wait proxy'
+# Когда proxy заработает, то curl на такой запрос вернет 22, так как доступ к localhost через прокси запрещен в конфиге squid
+# запрос идет через виртуалку, так как в хосте может быть не определено в /etc/hosts имя указанное в ${proxy_url}
+until vm_ssh "$h" "curl --proxy '${proxy_url}' --connect-timeout 1 --fail --head --output /dev/null --silent http://localhost || [ \$? -eq 22 ]"
+do
+	sleep 5
+done
+# для htop нужен epel
+vm_ssh "$h" "yum --assumeyes install epel-release http://download.postgresql.org/pub/repos/yum/${postgresql_version}/redhat/rhel-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm"
+# переделываю на baseurl, чтобы нормально работало proxy
+# раскомментирую baseurl, https->http, комментирую mirrorlist и metalink
+vm_ssh "$h" "sed -e '/^#\\?baseurl=https\\?:/ s//baseurl=http:/' -e '/^\\(mirrorlist\\)\\|\\(metalink\\)=/ s//#&/' -i /etc/yum.repos.d/*.repo"
+vm_ssh "$h" 'yum --assumeyes erase chrony'
+vm_ssh "$h" 'yum --assumeyes install deltarpm'
+vm_ssh "$h" 'yum --assumeyes update'
+# awscli для тестирования s3 на witness
+vm_ssh "$h" "yum --assumeyes install mc vim nmap mlocate htop pcs gpm ntp screen tmux bind-utils iotop sysbench stress-ng wget zabbix40-agent postgresql${postgresql_version} postgresql${postgresql_version}-server postgresql${postgresql_version}-contrib pgcenter awscli"
+if [ "$h" = "${vm_name[${Witness}]}" ]
+then
+	vm_ssh "$h" 'yum --assumeyes install corosync-qnetd'
+else
+	vm_ssh "$h" "yum --assumeyes install resource-agents-paf corosync-qdevice sbd"
+fi
+if $autoVirtualBox
+then
+	if [ "$h" = "${vm_name[${Witness}]}" ]
+	then
+		# Жду, пока все остальные, кроме witness, завершат инсталяцию,
+		# потому как http proxy на witness нужен для завершения инсталяции на остальных виртуалках.
+		# Проверяю, что инсталяция была успешно завершена по наличию снепшота install
+		for vm in ${!vm_name[@]}
+		do
+			if [ $vm -eq $Witness ]
+			then
+				continue
+			fi
+			while true
+			do
+				is=$(is_snapshot 'install' "${vm_name[$vm]}")
+				$is && break
+				sleep 5
+			done
+		done;unset vm is
+	fi
+	# Наличине скриншота install будет маркером, что распараллелеиная установка пакетов отработала нормально
+	snapshot 'install' 'The snapshot was taken at the end of the "install" script.' "$h"
+else
+	echo "При автоматической установке создается снепшот install"
+fi
+
+exit 0

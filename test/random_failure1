@@ -75,7 +75,7 @@ break_node+=('SBD-STOP')
 # Fork Bomb (test "out of memory")
 function ForkBomb {
 	# После форк бомбы ssh дисконнектит с ненулевым кодом возврата, игнорю
-	vm_ssh "$1" ':(){ :|:& };:&' || true
+	vm_ssh "$1" -o "ServerAliveInterval 5" -o "ServerAliveCountMax 1" ':(){ :|:& };:&' || true
 	sleep 5
 }
 readonly -f ForkBomb

@@ -8,6 +8,7 @@ readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 . "${lib_dir}/vm_ssh.bash"
 . "${lib_dir}/wait_healthy.bash"
 . "${lib_dir}/first_vm.bash"
+. "${lib_dir}/count_words.bash"
 
 if $autoVirtualBox
 then
@@ -25,20 +26,21 @@ then
 	power_on
 else
 	echo 'При автоматической установке здесь происходит откат к snapshot, который был создан после установки пакетов.'
+	echo 'Перед следующим этапом убедитесь, что у сетевого интерфейса, который будет использоваться с floating ip имя eth0.'
+	read -p 'press enter'
 fi
 
 # common things for all VM
 # Раскладывание общих файлов по всем VM
-for h in "${vm_name[@]}"
+for vm in "${!vm_name[@]}"
 do
+	h="${vm_name[$vm]}"
 	# Когда срабатывает wachdog, последние записи в syslog не сбрасываются из кэша на диск и информация
 	# о причинах сработки watchdog пропадает. Поэтому выставляю sync в конфиге rsyslog.
 	# Это так же приведет к потере производительности и в продакшине делать, возможно, не следует.
 	# А может следует.
 	vm_ssh "$h" "sed -e '/^#\\\$ActionFileEnableSync on$/s//\\\$ActionFileEnableSync on/' -i '/etc/rsyslog.conf'"
 	vm_ssh "$h" "systemctl force-reload rsyslog"
-	# add etc_hosts to /etc/hosts
-	vm_ssh "$h" 'cat >>/etc/hosts' <"${etc_hosts}"
 	# softdog
 	vm_cp "$h" "${common_dir}/watchdog.conf" '/etc/modules-load.d/watchdog.conf'
 	vm_ssh "$h" 'systemctl restart systemd-modules-load'
@@ -51,9 +53,12 @@ do
 	vm_ssh "$h" 'systemctl enable --now pcsd.service --quiet'
 	# bash
 	vm_ssh "$h" 'cat >>.bash_profile' <"${common_dir}/bash_profile"
-	vm_cp "$h" "${upload_dir}/${h}/bashrc_local" '.bashrc_local'
+	vm_ssh "$h" 'cat >>.bashrc_local' <<-EOF
+		CURSOR_COLOR='${vm_cursor[$vm]}'
+		PROMPT_COLOR='${vm_prompt[$vm]}'
+		EOF
 	vm_ssh "$h" 'cat >>.bashrc' <"${common_dir}/bashrc"
-done;unset h
+done;unset vm h
 
 # For witness
 h="${vm_name[${Witness}]}"
@@ -150,10 +155,14 @@ do
 	# Поэтому строчкой ниже workaround.
 	vm_ssh "$h" 'pcs quorum update auto_tie_breaker=0 --force'
 	vm_ssh "$h" 'pcs cluster start --all --wait'
-	# the sync_timeout must be at least 4 times greater, then timeout/dpd_interval
-	# explanation https://lists.clusterlabs.org/pipermail/users/2019-August/026145.html
-	vm_ssh "$h" "pcs quorum device add sync_timeout=40000 model net host='${vm_name[$Witness]}' algorithm=ffsplit"
-	# manual check: pcs quorum device status
+	# добавляю кворум девайс, если количетво машин четное
+	if  [ $(($(count_words ${cluster_vms[$c]})&1)) -eq 0 ]
+	then
+		# the sync_timeout must be at least 4 times greater, then timeout/dpd_interval
+		# explanation https://lists.clusterlabs.org/pipermail/users/2019-August/026145.html
+		vm_ssh "$h" "pcs quorum device add sync_timeout=40000 model net host='${vm_name[$Witness]}' algorithm=ffsplit"
+		# manual check: pcs quorum device status
+	fi
 	vm_ssh "$h" 'pcs property set stonith-enabled=true'
 	# Должно быть примерно в 2 раза больше, чем SBD_WATCHDOG_TIMEOUT в /etc/sysconfig/sbd в виртуалке
 	vm_ssh "$h" 'pcs property set stonith-watchdog-timeout=10'

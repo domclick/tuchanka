@@ -1,0 +1,40 @@
+#!/bin/bash
+# Тестирует цвета виртуальных машин
+# safe bash
+set -o errexit -o noclobber -o nounset -o pipefail -o xtrace
+
+# get config
+readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
+. "${root_dir}/load_config.bash"
+
+if ! tmux has-session -t tuchanka_test_colors
+then
+	tmux new-session -d -s tuchanka_test_colors -n tuchanka_test_colors -x $COLUMNS -y $LINES
+	tmux set-option mouse on
+	tmux set-option status off
+
+	declare -i n=${#vm_name[@]} i=0
+	for vm in "${!vm_name[@]}"
+	do
+		tmux pipe-pane -I "cat <<-EOF
+			#my favorite PS1
+			PS1='\\[\\e[38;5;'\"${vm_prompt[$vm]}\"'m\\]'
+			PS1=\"\\\$PS1\"'\\t j\\j '
+			PS1=\"\\\$PS1\"'\\u'
+			PS1=\"\\\$PS1\"'@\\h:\\w\\n'
+			PS1=\"\\\$PS1\"'\\[\\e]12;'\"${vm_cursor[$vm]}\"'\\a\\]'
+			PS1=\"\\\$PS1\"'\\\\\$ \\[\\e[m\\]'
+			echo host=${vm_name[$vm]} prompt=${vm_prompt[$vm]} cursor=${vm_cursor[$vm]}
+			EOF"
+		if [ $n -gt 1 ]
+		then
+			tmux split-window -h -p $((100-100/n))
+			let n-=1
+		fi
+		let i+=1
+	done; unset vm n i
+	tmux select-layout tiled
+	tmux select-pane -t '0'
+fi
+
+tmux attach-session -t tuchanka_test_colors

@@ -30,3 +30,4 @@ xterm*|rxvt*)
 	PS1='\t j\j \u@\h:\w\n\$ '
 	;;
 esac
+complete -C '/usr/bin/aws_completer' aws

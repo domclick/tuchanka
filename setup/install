@@ -7,220 +7,133 @@ readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 . "${root_dir}/load_config.bash"
 . "${lib_dir}/vm_ssh.bash"
 
-# create_vms
-if $autoVirtualBox
+if ! tmux has-session -t tuchanka_install_soft
 then
-	# check command line arguments
-	if [ $# -ne 2 ]
+	# create_vms
+	if $autoVirtualBox
 	then
-		echo -e "Usage:\n\t $0 <redhat_installation_image.iso> <ssh_public_key_file>" 1>&2
-		exit 1
-	fi
-	dvd_iso="$1"
-	echo "Check installation image \"${dvd_iso}\""
-	eval $(VBoxManage unattended detect --iso "${dvd_iso}" --machine-readable)
-	if [ "$OSTypeId" = 'RedHat_64' -a "$OSVersion" = '7' ]
-	then
-		echo "The installation image \"${dvd_iso}\" is Ok"
-	else
-		echo "Error: The installation image must be RedHat 7 64bit or so like (CentOS, for instance)" 1>&2
-		exit 2
-	fi
-	ssh_public_key="$2"
-	echo "Check ssh public key \"${ssh_public_key}\""
-	if [ -r "${ssh_public_key}" ]
-	then
-		ssh_fingerprint="$(ssh-keygen -l -f "${ssh_public_key}" | cut -d ' ' -f 2)"
-	else
-		echo "Error: The ssh public key file is not readable" 1>&2
-		exit 3
-	fi
-fi
-
-if $autoVirtualBox
-then
-	. "${lib_dir}/snapshot.bash"
-	. "${lib_dir}/vboxvm_dir.bash"
-fi
-
-# generate config files for other scripts
-# create ssh_config (with check of clean install)
-if [ -e "${ssh_config}" ]
-then
-	echo "Error: ssh_config already exists, install is not clean" 1>&2
-	exit 4
-fi
-# keep fingerprint of ssh inside ssh_config comments
-echo "${vm_ssh_add_key_prefix}${ssh_fingerprint}" >"${ssh_config}"
-unset ssh_fingerprint
-# add key to the ssh-agent, if abscent
-vm_ssh_add
-ssh_hosts=''
-for vm in "${!vm_name[@]}"
-do
-	echo -e "Host ${vm_name[$vm]}\n\tHostName ${vm_ip[$vm]}"
-	ssh_hosts="${ssh_hosts} ${vm_name[$vm]}"
-done >>"${ssh_config}";unset vm
-cat <<EOF >>"${ssh_config}"
-Host ${ssh_hosts}
-	ForwardAgent yes
-	ForwardX11 no
-	AddKeysToAgent yes
-	AddressFamily inet
-	BatchMode yes
-	BindAddress ${vboxnet_hostip}
-	CanonicalizeHostname no
-	CheckHostIP yes
-	Compression no
-	HashKnownHosts no
-	LogLevel ERROR
-	RequestTTY no
-	StrictHostKeyChecking yes
-	User root
-	TCPKeepAlive yes
-	ServerAliveInterval 5
-EOF
-unset ssh_hosts
-# generate etc_hosts file
-for vm in "${!vm_name[@]}"
-do
-	echo -e "${vm_ip[$vm]}\t${vm_name[$vm]} ${vm_name[$vm]}.tuchanka"
-done > "${etc_hosts}";unset vm
-for db in "${!float_ip[@]}"
-do
-	echo -e "${float_ip[$db]}\t${float_name[$db]} ${float_name[$db]}.tuchanka"
-done >> "${etc_hosts}";unset db
-echo -e "${vboxnet_hostip}\tvirtualbox virtualbox.tuchanka" >> "${etc_hosts}"
-
-if $autoVirtualBox
-then
-	# Подсетка кластера
-	echo 'Create a network interface for the host'
-	# get name for hostonlyif, if exists
-	vboxnet_if="$(VBoxManage list hostonlyifs|
-		tr '\n' '§'|sed -nE "/^.*Name:[[:space:]]+([[:alnum:]]+)§GUID:[^§]+§DHCP:[^§]+§IPAddress:[[:space:]]+${vboxnet_hostip//./\.}§.*$/ s//\1/p")"
-	if [ -z "${vboxnet_if}" ]
-	then
-		# Создаю интерфейс для hostonly сети и запоминаю имя:
-		vboxnet_if="$(VBoxManage hostonlyif create |
-			sed -E "s/Interface '(vboxnet[0-9]+)' was successfully created/\1/")"
-		# Назначаю IP хосту
-		VBoxManage hostonlyif ipconfig "${vboxnet_if}" --ip "${vboxnet_hostip}"
-		echo "created vboxnet_if=>${vboxnet_if}"
-	else
-		echo "Error: vboxnet_if=>${vboxnet_if} already exists" 1>&2
-		exit 5
+		# check command line arguments
+		if [ $# -ne 2 ]
+		then
+			echo -e "Usage:\n\t $0 <redhat_installation_image.iso> <ssh_public_key_file>" 1>&2
+			exit 1
+		fi
+		dvd_iso="$1"
+		echo "Check installation image \"${dvd_iso}\""
+		eval $(VBoxManage unattended detect --iso "${dvd_iso}" --machine-readable)
+		if [ "$OSTypeId" = 'RedHat_64' -a "$OSVersion" = '7' ]
+		then
+			echo "The installation image \"${dvd_iso}\" is Ok"
+		else
+			echo "Error: The installation image must be RedHat 7 64bit or so like (CentOS, for instance)" 1>&2
+			exit 2
+		fi
+		ssh_public_key="$2"
+		echo "Check ssh public key \"${ssh_public_key}\""
+		if [ -r "${ssh_public_key}" ]
+		then
+			ssh_fingerprint="$(ssh-keygen -l -f "${ssh_public_key}" | cut -d ' ' -f 2)"
+		else
+			echo "Error: The ssh public key file is not readable" 1>&2
+			exit 3
+		fi
 	fi
 
-	# Виртуалки
+	# generate config files for other scripts
+	# create ssh_config (with check of clean install)
+	if [ -e "${ssh_config}" -o -e "${etc_hosts}" -o -e "${ssh_known_hosts}" ]
+	then
+		echo "Config files already exist, install is not clean"
+		"${setup_dir}/destroy_vms"
+	fi
+	# keep fingerprint of ssh inside ssh_config comments
+	echo "${vm_ssh_add_key_prefix}${ssh_fingerprint}" >"${ssh_config}"
+	unset ssh_fingerprint
+	# add key to the ssh-agent, if abscent
+	vm_ssh_add
+	ssh_hosts=''
 	for vm in "${!vm_name[@]}"
 	do
-		h="${vm_name[$vm]}"
-		echo "Create ${h}"
-		# get host dir
-		VBoxManage createvm --name "$h" --groups "/Tuchanka/Tuchanka${vm_group[$vm]}" --ostype RedHat_64 --register
-		if [ "$h" = "${vm_name[${Witness}]}" ]
-		then
-			VBoxManage modifyvm "${h}" --description "${vm_desc[$vm]}" --memory $RAM_MiB --vram=$VRAM_MiB --boot1 dvd --boot2 disk --boot3 none --boot4 none --rtcuseutc on --graphicscontroller vboxsvga --firmware bios --defaultfrontend headless --nic1 hostonly --nictype1 virtio --hostonlyadapter1 "${vboxnet_if}" --nic2 nat --nictype2 virtio --mouse usb --keyboard usb --audio none --cpus 2 --iconfile "${root_dir}/images/krogan.png"
-			vboxvm_vdi="$(vboxvm_dir "${h}")/${h}.vdi"
-			# На witness proxy cache и (будет) S3 файловый сервер, поэтому размер в два раза больше
-			VBoxManage createmedium disk --filename "${vboxvm_vdi}" --variant Fixed --size $(( $HDD_MiB*2 ))
-		else
-			VBoxManage modifyvm "${h}" --description "${vm_desc[$vm]}" --memory $RAM_MiB --vram=$VRAM_MiB --boot1 dvd --boot2 disk --boot3 none --boot4 none --rtcuseutc on --graphicscontroller vboxsvga --firmware bios --defaultfrontend headless --nic1 hostonly --nictype1 virtio --hostonlyadapter1 "${vboxnet_if}" --mouse usb --keyboard usb --audio none --cpus 2 --iconfile "${root_dir}/images/krogan.png"
-			vboxvm_vdi="$(vboxvm_dir "${h}")/${h}.vdi"
-			VBoxManage createmedium disk --filename "${vboxvm_vdi}" --variant Fixed --size $HDD_MiB
-		fi
-		VBoxManage storagectl "$h" --name 'DiskController' --add sas --hostiocache off --bootable on
-		# кэширование образа dvd для ускорения установки
-		VBoxManage storagectl "$h" --name 'DVDController' --add sata --hostiocache on --bootable on
-		VBoxManage storageattach "$h" --storagectl 'DiskController' --type hdd --port 0 --device 0 --medium "${vboxvm_vdi}"
-		VBoxManage storageattach "$h" --storagectl 'DVDController' --type dvddrive --port 0 --device 0 --medium "${dvd_iso}"
-		VBoxManage unattended install "$h" --iso="${dvd_iso}" --full-user-name="${vm_ip[$vm]}" --locale='ru_RU' --time-zone="${time_zone}" --hostname="${h}.tuchanka" --package-selection-adjustment='minimal' --script-template="${setup_dir}/redhat7.kickstart" --post-install-command="mkdir -m 700 \"\${MY_TARGET}/root/.ssh\" && echo '$(cat "${ssh_public_key}")' >>\"\${MY_TARGET}/root/.ssh/authorized_keys\"" --start-vm='headless' --extra-install-kernel-parameters='net.ifnames=0 biosdevname=0 ks=cdrom:/ks.cfg'
-		echo "Created ${h}"
-	done;unset vm h
-else
-	echo 'При автоматической установке создается интерфейс админского компьютера во внутренней подсетке кластера.'
-	echo 'Создаются виртуалки, на них устанавливается CentOS с предварительной настройкой в инсталляторе.'
-	echo 'И публичный ключ сисадмина записывается пользователю root.'
-	echo 'А сейчас ручной режим и поэтому все эти действия необходимо выполнить вручную.'
-	echo 'Дальнейшее выполнение скрипта ожидает, что на серверах кластера уже запущен ssh.'
-fi
-
-# Жду завершение установки, записываю публичный ключ хоста, выключаю
-declare ssh_key
-for vm in "${!vm_name[@]}"
-do
-	echo "Waiting for ssh on ${vm_name[$vm]}"
-	# ssh-keyscan иногда возвращает при ошибках код отличный от 0, иногда нет.
-	while true
-	do
-		ssh_key="$(ssh-keyscan -t ssh-ed25519 "${vm_ip[$vm]}" 2>/dev/null || true)"
-		[ -n "${ssh_key}" ] && break
-		sleep 5
-	done
-	echo "${ssh_key}" >>"${ssh_known_hosts}"
-	# kdump отключен в kickstart файле, выключаю сервис, чтобы systemctl is-system-runnig корректно работал
-	vm_ssh "${vm_name[$vm]}" 'systemctl disable kdump.service --quiet'
-done;unset vm
-unset -v ssh_key
-
-# setup proxy
-h=${vm_name[${Witness}]}
-vm_ssh "$h" 'yum --assumeyes install httpd'
-vm_ssh "$h" "cat >'/etc/httpd/conf.d/proxy.conf'" <<-EOF
-	ProxyRequests On
-	ProxyVia Full
-	# Иначе почему-то не работает
-	CacheQuickHandler off
-	# The same as CACHE_ROOT in /etc/sysconfig/htcacheclean
-	CacheRoot /var/cache/httpd/proxy
-	CacheEnable disk "http://"
-	CacheHeader On
-	CacheLock on
-	# in bytes 100MB
-	CacheMaxFileSize 100000000
-	# Copy/paste from main config
-	LogFormat "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\" %{cache-status}e" combined
+		echo -e "Host ${vm_name[$vm]}\n\tHostName ${vm_ip[$vm]}"
+		ssh_hosts="${ssh_hosts} ${vm_name[$vm]}"
+	done >>"${ssh_config}";unset vm
+	cat <<-EOF >>"${ssh_config}"
+	Host${ssh_hosts}
+		ForwardAgent yes
+		ForwardX11 no
+		AddKeysToAgent yes
+		AddressFamily inet
+		BatchMode yes
+		BindAddress ${vboxnet_hostip}
+		CanonicalizeHostname no
+		CheckHostIP yes
+		Compression no
+		HashKnownHosts no
+		LogLevel ERROR
+		RequestTTY no
+		StrictHostKeyChecking yes
+		User root
+		TCPKeepAlive yes
 	EOF
-vm_ssh "$h" "sed -e '/^INTERVAL=[[:digit:]]\\+\$/ s//INTERVAL=60/' -i /etc/sysconfig/htcacheclean"
-vm_ssh "$h" 'systemctl enable --now httpd.service --quiet'
-vm_ssh "$h" 'systemctl enable --now htcacheclean.service --quiet'
-sleep 5
-#install_soft
-for h in "${vm_name[@]}"
-do
-	echo "Install soft to $h"
-	vm_ssh "$h" 'localectl set-locale LANG=ru_RU.UTF-8 LC_MESSAGES=en_US.UTF-8 LANGUAGE=en'
-	# отключаю fastestmirror.conf, чтобы не мешал proxy
-	vm_ssh "$h" "sed -e '/^enabled=1\$/ s//enabled=0/' -i /etc/yum/pluginconf.d/fastestmirror.conf"
-	vm_ssh "$h" "sed -e '/^# PUT YOUR REPOS HERE/ i proxy=http://${vm_ip[${Witness}]}:80\n' -i /etc/yum.conf"
-	# для htop нужен epel
-	vm_ssh "$h" 'yum --assumeyes install http://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm'
-	vm_ssh "$h" 'yum --assumeyes install http://repo.zabbix.com/zabbix/4.0/rhel/7/x86_64/zabbix-release-4.0-1.el7.noarch.rpm'
-	# на witness postgresql вспомогательный, для хранения результатов тестирования и zabbix
-	vm_ssh "$h" "yum --assumeyes install http://download.postgresql.org/pub/repos/yum/${postgresql_version}/redhat/rhel-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm"
-	# переделываю на baseurl, чтобы нормально работало proxy
-	# раскомментирую baseurl, https->http, комментирую mirrorlist и metalink
-	vm_ssh "$h" "sed -e '/^#\\?baseurl=https\\?:/ s//baseurl=http:/' -e '/^\\(mirrorlist\\)\\|\\(metalink\\)=/ s//#&/' -i /etc/yum.repos.d/*.repo"
-	vm_ssh "$h" 'yum --assumeyes erase chrony'
-	vm_ssh "$h" 'yum --assumeyes install deltarpm'
-	vm_ssh "$h" 'yum --assumeyes update'
-	# awscli для тестирования s3 на witness
-	vm_ssh "$h" "yum --assumeyes install mc vim nmap mlocate htop pcs gpm ntp screen tmux bind-utils iotop sysbench stress-ng wget zabbix-agent postgresql${postgresql_version} postgresql${postgresql_version}-server postgresql${postgresql_version}-contrib pgcenter awscli"
-	if [ "$h" = "${vm_name[${Witness}]}" ]
-	then
-		vm_ssh "$h" 'yum --assumeyes install corosync-qnetd'
-	else
-		vm_ssh "$h" "yum --assumeyes install resource-agents-paf corosync-qdevice sbd"
-	fi
-done;unset h
+	unset ssh_hosts
+	# generate etc_hosts file
+	for vm in "${!vm_name[@]}"
+	do
+		echo -e "${vm_ip[$vm]}\t${vm_name[$vm]} ${vm_name[$vm]}.tuchanka"
+	done > "${etc_hosts}";unset vm
+	for db in "${!float_ip[@]}"
+	do
+		echo -e "${float_ip[$db]}\t${float_name[$db]} ${float_name[$db]}.tuchanka"
+	done >> "${etc_hosts}";unset db
+	echo -e "${vboxnet_hostip}\tvirtualbox virtualbox.tuchanka" >> "${etc_hosts}"
 
-if $autoVirtualBox
-then
-	snapshot 'install' 'The snapshot was taken at the end of the "install" script.'
-else
-	echo 'При автоматической установке здесь сохраняется snapshot с установленными пакетами.'
-	echo 'Перед следующим этапом "setup" убедитесь, что у сетевого интерфейса, который будет использоваться с floating ip имя eth0.'
+	if $autoVirtualBox
+	then
+		# Подсетка кластера
+		echo 'Create a network interface for the host'
+		# get name for hostonlyif, if exists
+		vboxnet_if="$(VBoxManage list hostonlyifs|
+			tr '\n' '§'|sed -nE "/^.*Name:[[:space:]]+([[:alnum:]]+)§GUID:[^§]+§DHCP:[^§]+§IPAddress:[[:space:]]+${vboxnet_hostip//./\.}§.*$/ s//\1/p")"
+		if [ -z "${vboxnet_if}" ]
+		then
+			# Создаю интерфейс для hostonly сети и запоминаю имя:
+			vboxnet_if="$(VBoxManage hostonlyif create |
+				sed -E "s/Interface '(vboxnet[0-9]+)' was successfully created/\1/")"
+			# Назначаю IP хосту
+			VBoxManage hostonlyif ipconfig "${vboxnet_if}" --ip "${vboxnet_hostip}"
+			echo "created vboxnet_if=>${vboxnet_if}"
+		else
+			echo "Error: vboxnet_if=>${vboxnet_if} already exists" 1>&2
+			exit 5
+		fi
+		# будет использоваться при распараллеленной инсталяции
+		export dvd_iso ssh_public_key vboxnet_if
+	fi
+	tmux new-session -d -s tuchanka_install_soft -n tuchanka_install_soft -x $COLUMNS -y $LINES
+	tmux set-option mouse on
+	tmux set-option status off
+	# may be need for debug
+	# tmux set-window-option remain-on-exit on
+
+	declare -i n=${#vm_name[@]} i=0
+	for vm in "${!vm_name[@]}"
+	do
+		tmux respawn-pane -k "sleep $i && '${setup_dir}/install1' '${vm}'"
+		if [ $n -gt 1 ]
+		then
+			tmux split-window -h -p $((100-100/n))
+			let n-=1
+		fi
+		let i+=1
+	done; unset vm n i
+	tmux select-layout tiled
+	tmux select-pane -t '0'
 fi
 
-exit 0
+tmux attach-session -t tuchanka_install_soft
+# Наличине скриншота install будет маркером, что распараллелеиная установка пакетов отработала нормально
+
+if ! tmux has-session -t tuchanka_install_soft
+then
+	exec "${setup_dir}/setup"
+fi

@@ -14,6 +14,8 @@ readonly autoVirtualBox='true'
 
 # Местоположение cib.xml в виртуалках
 readonly cib='/var/lib/pacemaker/cib/cib.xml'
+# Местоположение pgsql директории на виртуалках
+readonly pgsql_dir='/var/lib/pgsql' # в upload/common/postgresql.conf независимо прописан путь /var/lib/pgsql
 # Версия PostgeSQL, используется в качестве суффикса в URL, названиях пакетов, путях у этих пакетов
 readonly postgresql_version=11
 # Мне выделили 192.168.89/24 подсетку для экспериментов, будет использоваться для связи серверов внутри кластера:
@@ -21,7 +23,7 @@ readonly vboxnet_prefix='192.168.89'
 # Для хоста назначаю 192.168.89.254:
 readonly vboxnet_hostip="${vboxnet_prefix}.254"
 # ОЗУ и диск, таймзона для виртуалок (в формате для unattended install)
-readonly RAM_MiB=768 VRAM_MiB=10 HDD_MiB=3072 time_zone='Europe/Moscow'
+readonly CPUs=2 CPU_execution_cap=50 RAM_MiB=768 VRAM_MiB=10 HDD_MiB=3072 time_zone='Europe/Moscow'
 # really don't need to change in the test bed, password of hacluster unix user
 readonly hacluster_password='ChangeMe'
 # dirs
@@ -32,72 +34,117 @@ readonly ssh_config="${root_dir}/ssh_config" ssh_known_hosts="${root_dir}/ssh_kn
 # Команда, с помощью которой можно загрузить ключ в ssh-agent для работы с виртуалками
 # Возможны варианты, поэтому команда вынесена в конфиг.
 # В default_config эта команда загружает дефолтные ключи из ~/.ssh, пароли для них берет из keychain.
-vm_ssh_load_key='ssh-add -A'
+readonly vm_ssh_load_key='ssh-add -A'
+# http proxy url
+# http proxy должна быть устойчива к эффекту громоподобного стада при первой загрузке
+# например squid с опцией collapsed_forwarding on
+proxy_url='http://witness.tuchanka:3128'
 
 # Cluster ID
 # Номера кластеров, оформленны в виде переменных, чтобы потом было удобнее искать их использовать.
 # 0 фиктивный кластер, по сути это группа серверов общего пользования для оказания вспомогательных услуг.
 readonly Group0=0 Cluster1=1 Cluster2=2 Cluster3=3 Cluster4=4
 
-Witness=251
+readonly Witness=1
 vm_ip[$Witness]="${vboxnet_prefix}.${Witness}"
 vm_name[$Witness]='witness'
 # Группа сервисных серверов, оказывающих услуги для всех кластеров, типа quorum device.
 vm_group[$Witness]=$Group0
 vm_desc[$Witness]='Witness server for the Tuchanka cluster'
+vm_cursor[$Witness]='#ffd75f'
+vm_prompt[$Witness]='221'
 
-Tuchanka1a=1
+readonly Tuchanka1a=11
 vm_ip[$Tuchanka1a]="${vboxnet_prefix}.${Tuchanka1a}"
 vm_name[$Tuchanka1a]='tuchanka1a'
 vm_group[$Tuchanka1a]=$Cluster1
 vm_desc[$Tuchanka1a]='Tuchanka1a node of the Tuchanka1 cluster'
+vm_cursor[$Tuchanka1a]='#87ff00'
+vm_prompt[$Tuchanka1a]='118'
 
-Tuchanka1b=2
+readonly Tuchanka1b=12
 vm_ip[$Tuchanka1b]="${vboxnet_prefix}.${Tuchanka1b}"
 vm_name[$Tuchanka1b]='tuchanka1b'
 vm_group[$Tuchanka1b]=$Cluster1
 vm_desc[$Tuchanka1b]='Tuchanka1b node of the Tuchanka1 cluster'
+vm_cursor[$Tuchanka1b]='#00ff87'
+vm_prompt[$Tuchanka1b]='48'
 
-Tuchanka2a=11
+readonly Tuchanka2a=21
 vm_ip[$Tuchanka2a]="${vboxnet_prefix}.${Tuchanka2a}"
 vm_name[$Tuchanka2a]='tuchanka2a'
 vm_group[$Tuchanka2a]=$Cluster2
 vm_desc[$Tuchanka2a]='Tuchanka2a node of the Tuchanka2 cluster'
+vm_cursor[$Tuchanka2a]='#00ffd7'
+vm_prompt[$Tuchanka2a]='50'
 
-Tuchanka2b=12
+readonly Tuchanka2b=22
 vm_ip[$Tuchanka2b]="${vboxnet_prefix}.${Tuchanka2b}"
 vm_name[$Tuchanka2b]='tuchanka2b'
 vm_group[$Tuchanka2b]=$Cluster2
 vm_desc[$Tuchanka2b]='Tuchanka2b node of the Tuchanka2 cluster'
+vm_cursor[$Tuchanka2b]='#5fd7ff'
+vm_prompt[$Tuchanka2b]='81'
 
-Tuchanka4a=21
+readonly Tuchanka3a=31
+vm_ip[$Tuchanka3a]="${vboxnet_prefix}.${Tuchanka3a}"
+vm_name[$Tuchanka3a]='tuchanka3a'
+vm_group[$Tuchanka3a]=$Cluster3
+vm_desc[$Tuchanka3a]='Tuchanka3a node of the Tuchanka3 cluster'
+vm_cursor[$Tuchanka3a]='#0087ff'
+vm_prompt[$Tuchanka3a]='33'
+
+readonly Tuchanka3b=32
+vm_ip[$Tuchanka3b]="${vboxnet_prefix}.${Tuchanka3b}"
+vm_name[$Tuchanka3b]='tuchanka3b'
+vm_group[$Tuchanka3b]=$Cluster3
+vm_desc[$Tuchanka3b]='Tuchanka3b node of the Tuchanka3 cluster'
+vm_cursor[$Tuchanka3b]='#5f5fff'
+vm_prompt[$Tuchanka3b]='63'
+
+readonly Tuchanka3c=33
+vm_ip[$Tuchanka3c]="${vboxnet_prefix}.${Tuchanka3c}"
+vm_name[$Tuchanka3c]='tuchanka3c'
+vm_group[$Tuchanka3c]=$Cluster3
+vm_desc[$Tuchanka3c]='Tuchanka3c node of the Tuchanka3 cluster'
+vm_cursor[$Tuchanka3c]='#8700ff'
+vm_prompt[$Tuchanka3c]='93'
+
+readonly Tuchanka4a=41
 vm_ip[$Tuchanka4a]="${vboxnet_prefix}.${Tuchanka4a}"
 vm_name[$Tuchanka4a]='tuchanka4a'
 vm_group[$Tuchanka4a]=$Cluster4
 vm_desc[$Tuchanka4a]='Tuchanka4a node of the Tuchanka4 cluster'
+vm_cursor[$Tuchanka4a]='#ff00ff'
+vm_prompt[$Tuchanka4a]='201'
 
-Tuchanka4b=22
+readonly Tuchanka4b=42
 vm_ip[$Tuchanka4b]="${vboxnet_prefix}.${Tuchanka4b}"
 vm_name[$Tuchanka4b]='tuchanka4b'
 vm_group[$Tuchanka4b]=$Cluster4
 vm_desc[$Tuchanka4b]='Tuchanka4b node of the Tuchanka4 cluster'
+vm_cursor[$Tuchanka4b]='#ff00d7'
+vm_prompt[$Tuchanka4b]='200'
 
-Tuchanka4c=23
+readonly Tuchanka4c=43
 vm_ip[$Tuchanka4c]="${vboxnet_prefix}.${Tuchanka4c}"
 vm_name[$Tuchanka4c]='tuchanka4c'
 vm_group[$Tuchanka4c]=$Cluster4
 vm_desc[$Tuchanka4c]='Tuchanka4c node of the Tuchanka4 cluster'
+vm_cursor[$Tuchanka4c]='#ff00af'
+vm_prompt[$Tuchanka4c]='199'
 
-Tuchanka4d=24
+readonly Tuchanka4d=44
 vm_ip[$Tuchanka4d]="${vboxnet_prefix}.${Tuchanka4d}"
 vm_name[$Tuchanka4d]='tuchanka4d'
 vm_group[$Tuchanka4d]=$Cluster4
 vm_desc[$Tuchanka4d]='Tuchanka4d node of the Tuchanka4 cluster'
-readonly Witness Tuchanka1a Tuchanka1b Tuchanka2a Tuchanka2b Tuchanka4a Tuchanka4b Tuchanka4c Tuchanka4d
-readonly -a vm_ip vm_name vm_group vm_desc
+vm_cursor[$Tuchanka4d]='#ff0087'
+vm_prompt[$Tuchanka4d]='198'
+readonly -a vm_ip vm_name vm_group vm_desc vm_cursor vm_prompt
 
 # ID БД совпадет с ID float_ip(float_name) на котором находится мастер
-Krogan1a=101
+readonly Krogan1a=15
 float_ip[$Krogan1a]="${vboxnet_prefix}.${Krogan1a}"
 # так же плавающий IP мастера БД
 float_name[$Krogan1a]='krogan1a'
@@ -108,24 +155,42 @@ db_setup_master[$Krogan1a]='tuchanka1a'
 # адреса рабов	БД, которые используются при первичной настройке с помощью pg_ctl
 # до создания кластера pacemaker
 db_setup_slaves[$Krogan1a]='tuchanka1b'
-Krogan1b=102
+
+readonly Krogan1b=16
 float_ip[$Krogan1b]="${vboxnet_prefix}.${Krogan1b}"
 float_name[$Krogan1b]='krogan1b'
 db_slaves[$Krogan1b]=''
 db_port[$Krogan1b]=5434
 db_setup_master[$Krogan1b]='tuchanka1b'
 db_setup_slaves[$Krogan1b]='tuchanka1a'
-Krogan2=103
+
+readonly Krogan2=25
 float_ip[$Krogan2]="${vboxnet_prefix}.${Krogan2}"
 float_name[$Krogan2]='krogan2'
 db_slaves[$Krogan2]='krogan2s1'
 db_port[$Krogan2]=5432
 db_setup_master[$Krogan2]='tuchanka2a'
 db_setup_slaves[$Krogan2]='tuchanka2b'
-Krogan2s1=104
+readonly Krogan2s1=26
 float_ip[$Krogan2s1]="${vboxnet_prefix}.${Krogan2s1}"
 float_name[$Krogan2s1]='krogan2s1'
-Krogan4=105
+
+readonly Krogan3=35
+float_ip[$Krogan3]="${vboxnet_prefix}.${Krogan3}"
+float_name[$Krogan3]='krogan3'
+db_slaves[$Krogan3]='krogan3s1 krogan3s2'
+db_port[$Krogan3]=5432
+db_setup_master[$Krogan3]='tuchanka3a'
+# several slaves separated by space
+db_setup_slaves[$Krogan3]='tuchanka3b tuchanka3c'
+readonly Krogan3s1=36
+float_ip[$Krogan3s1]="${vboxnet_prefix}.${Krogan3s1}"
+float_name[$Krogan3s1]='krogan3s1'
+readonly Krogan3s2=37
+float_ip[$Krogan3s2]="${vboxnet_prefix}.${Krogan3s2}"
+float_name[$Krogan3s2]='krogan3s2'
+
+readonly Krogan4=45
 float_ip[$Krogan4]="${vboxnet_prefix}.${Krogan4}"
 float_name[$Krogan4]='krogan4'
 db_slaves[$Krogan4]='krogan4s1 krogan4s2 krogan4s3'
@@ -133,17 +198,16 @@ db_port[$Krogan4]=5432
 db_setup_master[$Krogan4]='tuchanka4a'
 # several slaves separated by space
 db_setup_slaves[$Krogan4]='tuchanka4b tuchanka4c tuchanka4d'
-Krogan4s1=106
+readonly Krogan4s1=46
 float_ip[$Krogan4s1]="${vboxnet_prefix}.${Krogan4s1}"
 float_name[$Krogan4s1]='krogan4s1'
-Krogan4s2=107
+readonly Krogan4s2=47
 float_ip[$Krogan4s2]="${vboxnet_prefix}.${Krogan4s2}"
 float_name[$Krogan4s2]='krogan4s2'
-Krogan4s3=108
+readonly Krogan4s3=48
 float_ip[$Krogan4s3]="${vboxnet_prefix}.${Krogan4s3}"
 float_name[$Krogan4s3]='krogan4s3'
 
-readonly Krogan1a Krogan1b Krogan2 Krogan2s1 Krogan4 Krogan4s1 Krogan4s2 Krogan4s3
 readonly -a float_ip float_name db_slaves db_port db_setup_master db_setup_slaves
 
 # Все виртуалки кластера, двухмерные массивы в bash отсутствуют, имитирую списком разделенным пробелами
@@ -154,6 +218,9 @@ cluster_dbs[$Cluster1]="$Krogan1a $Krogan1b"
 
 cluster_vms[$Cluster2]='tuchanka2a tuchanka2b'
 cluster_dbs[$Cluster2]="$Krogan2"
+
+cluster_vms[$Cluster3]='tuchanka3a tuchanka3b tuchanka3c'
+cluster_dbs[$Cluster3]="$Krogan3"
 
 cluster_vms[$Cluster4]='tuchanka4a tuchanka4b tuchanka4c tuchanka4d'
 cluster_dbs[$Cluster4]="$Krogan4"
