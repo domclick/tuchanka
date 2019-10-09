@@ -27,7 +27,7 @@ then
 				sleep 5
 			done
 		done;unset vm
-		sleep 1
+		sleep 5
 	}
 	readonly -f power_on
 fi
