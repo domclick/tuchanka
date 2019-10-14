@@ -5,26 +5,26 @@
 if is_function_absent 'power_off'
 then
 	function power_off {
-		local vms="${*:-"${vm_name[*]}"}"
-		local vm is
-		for vm in $vms
+		local hosts="${*:-"${!vm_name[*]}"}"
+		local h is
+		for h in $hosts
 		do
-			is=$(is_vm_running "$vm")
+			is=$(is_vm_running $h)
 			if $is
 			then
-				VBoxManage controlvm "$vm" poweroff
+				VBoxManage controlvm "${vm_name[$h]}" poweroff
 			fi
-		done;unset vm
-		for vm in $vms
+		done;unset h
+		for h in $hosts
 		do
-			echo "Waiting power_off of ${vm}"
+			echo "Waiting power_off of ${vm_name[$h]}"
 			while true
 			do
-				is=$(is_vm_running "$vm")
+				is=$(is_vm_running $h)
 				$is || break
 				sleep 5
 			done
-		done;unset vm
+		done;unset h
 		sleep 1
 	}
 	readonly -f power_off

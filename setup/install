@@ -52,11 +52,11 @@ then
 	# add key to the ssh-agent, if abscent
 	vm_ssh_add
 	ssh_hosts=''
-	for vm in "${!vm_name[@]}"
+	for h in "${!vm_name[@]}"
 	do
-		echo -e "Host ${vm_name[$vm]}\n\tHostName ${vm_ip[$vm]}"
-		ssh_hosts="${ssh_hosts} ${vm_name[$vm]}"
-	done >>"${ssh_config}";unset vm
+		echo -e "Host ${vm_name[$h]}\n\tHostName ${vm_ip[$h]}"
+		ssh_hosts+=" ${vm_name[$h]}"
+	done >>"${ssh_config}";unset h
 	cat <<-EOF >>"${ssh_config}"
 	Host${ssh_hosts}
 		ForwardAgent yes
@@ -77,10 +77,10 @@ then
 	EOF
 	unset ssh_hosts
 	# generate etc_hosts file
-	for vm in "${!vm_name[@]}"
+	for h in "${!vm_name[@]}"
 	do
-		echo -e "${vm_ip[$vm]}\t${vm_name[$vm]} ${vm_name[$vm]}.tuchanka"
-	done > "${etc_hosts}";unset vm
+		echo -e "${vm_ip[$h]}\t${vm_name[$h]} ${vm_name[$h]}.tuchanka"
+	done > "${etc_hosts}";unset h
 	for db in "${!float_ip[@]}"
 	do
 		echo -e "${float_ip[$db]}\t${float_name[$db]} ${float_name[$db]}.tuchanka"
@@ -116,16 +116,16 @@ then
 	# tmux set-window-option remain-on-exit on
 
 	declare -i n=${#vm_name[@]} i=0
-	for vm in "${!vm_name[@]}"
+	for h in "${!vm_name[@]}"
 	do
-		tmux respawn-pane -k "sleep $i && '${setup_dir}/install1' '${vm}'"
+		tmux respawn-pane -k "sleep $i && '${setup_dir}/install1' $h"
 		if [ $n -gt 1 ]
 		then
 			tmux split-window -h -p $((100-100/n))
 			let n-=1
 		fi
 		let i+=1
-	done; unset vm n i
+	done; unset h n i
 	tmux select-layout tiled
 	tmux select-pane -t '0'
 fi

@@ -6,270 +6,46 @@ set -o errexit -o noclobber -o nounset -o pipefail -o xtrace
 readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 . "${root_dir}/load_config.bash"
 . "${lib_dir}/vm_ssh.bash"
-. "${lib_dir}/wait_healthy.bash"
-. "${lib_dir}/first_vm.bash"
-. "${lib_dir}/count_words.bash"
-
 if $autoVirtualBox
 then
+	. "${lib_dir}/delete_snapshot.bash"
 	. "${lib_dir}/rollback.bash"
-	. "${lib_dir}/power_on.bash"
-	. "${lib_dir}/snapshot.bash"
 fi
-
-# configure
-readonly pgsql_dir='/var/lib/pgsql' # в upload/common/postgresql.conf независимо прописан путь /var/lib/pgsql
 
 if $autoVirtualBox
 then
 	rollback 'install'
-	power_on
+	# Наличине скриншота setup будет маркером, что setup1 скрипт отработал нормально.
+	delete_snapshot 'setup'
 else
 	echo 'При автоматической установке здесь происходит откат к snapshot, который был создан после установки пакетов.'
 	echo 'Перед следующим этапом убедитесь, что у сетевого интерфейса, который будет использоваться с floating ip имя eth0.'
 	read -p 'press enter'
 fi
 
-# common things for all VM
-# Раскладывание общих файлов по всем VM
-for vm in "${!vm_name[@]}"
-do
-	h="${vm_name[$vm]}"
-	# Когда срабатывает wachdog, последние записи в syslog не сбрасываются из кэша на диск и информация
-	# о причинах сработки watchdog пропадает. Поэтому выставляю sync в конфиге rsyslog.
-	# Это так же приведет к потере производительности и в продакшине делать, возможно, не следует.
-	# А может следует.
-	vm_ssh "$h" "sed -e '/^#\\\$ActionFileEnableSync on$/s//\\\$ActionFileEnableSync on/' -i '/etc/rsyslog.conf'"
-	vm_ssh "$h" "systemctl force-reload rsyslog"
-	# softdog
-	vm_cp "$h" "${common_dir}/watchdog.conf" '/etc/modules-load.d/watchdog.conf'
-	vm_ssh "$h" 'systemctl restart systemd-modules-load'
-	# Как его настраивать, чтобы работал совместо с pacemaker не знаю
-	vm_ssh "$h" 'systemctl disable --now firewalld --quiet'
-	# for pacemaker
-	echo -e "${hacluster_password}\n${hacluster_password}" | vm_ssh "$h" 'passwd --stdin hacluster'
-	# pacemaker redhat client, REST daemon
-	# vm_ssh "$h" "sed -e '/^PCSD_DEBUG=false$/s//PCSD_DEBUG=true/' -i '/etc/sysconfig/pcsd'"
-	vm_ssh "$h" 'systemctl enable --now pcsd.service --quiet'
-	# bash
-	vm_ssh "$h" 'cat >>.bash_profile' <"${common_dir}/bash_profile"
-	vm_ssh "$h" 'cat >>.bashrc_local' <<-EOF
-		CURSOR_COLOR='${vm_cursor[$vm]}'
-		PROMPT_COLOR='${vm_prompt[$vm]}'
-		EOF
-	vm_ssh "$h" 'cat >>.bashrc' <"${common_dir}/bashrc"
-done;unset vm h
-
-# For witness
-h="${vm_name[${Witness}]}"
-# ntpd setup
-# witness is our backup ntp server, usefull for isolated testbed
-vm_ssh "$h" "sed -e '/^\(server\)\s/s//#\1/' -i '/etc/ntp.conf'"
-vm_ssh "$h" "cat >>'/etc/ntp.conf'" <<-EOF
-	# Added by tuchanka setup script
-	restrict ${vboxnet_prefix}.0 mask 255.255.255.0 kod nomodify notrap
-	pool ru.pool.ntp.org iburst preempt
-	server ntp1.vniiftri.ru iburst
-	server ntp2.vniiftri.ru iburst
-	server ntp3.vniiftri.ru iburst
-	server ntp4.vniiftri.ru iburst
-	# orphan mode
-	tos orphan 10
-	EOF
-vm_ssh "$h" 'systemctl enable --now ntpd.service --quiet'
-vm_ssh "$h" 'pcs qdevice setup model net --enable --start'
-# manual check of qdevice: pcs qdevice status net
-
-# Все кроме witness
-for hosts in "${cluster_vms[@]}"
-do
-	for h in ${hosts}
-	do
-		# ntpd setup
-		vm_ssh "$h" "sed -e '/^\(server\)\s/s//#\1/' -i '/etc/ntp.conf'"
-		vm_ssh "$h" "cat >>'/etc/ntp.conf'" <<-EOF
-			# Added by tuchanka setup script
-			restrict ${vboxnet_prefix}.0 mask 255.255.255.0 kod nomodify notrap
-			server ${vm_name[${Witness}]} iburst
-			# orphan mode
-			tos orphan 11
-			EOF
-		# for all in the same cluster, but not I
-		for hh in ${hosts}
-		do
-			if [ "$hh" != "$h" ]
-			then
-				vm_ssh "$h" "echo 'peer ${hh} xleave' >>'/etc/ntp.conf'"
-			fi
-		done;unset hh
-		vm_ssh "$h" 'systemctl enable --now ntpd.service --quiet'
-		# какой-то идиот выставил этому файлу права на выполнение
-		vm_ssh "$h" 'chmod a-x /var/lib/pgsql/.bash_profile'
-		# настраиваю shell для postgres user
-		vm_ssh "$h" "cat >'${pgsql_dir}/.pgsql_profile'" <<-EOF
-			unset PGDATA
-			PATH="/usr/pgsql-${postgresql_version}/bin:\${PATH}"
-			EOF
-		# PostgreSQL passwords
-		vm_ssh "$h" 'umask 0177 && cat >~/.pgpass' <"${common_dir}/pgpass"
-		vm_cp2pgsql "$h" "${common_dir}/pgpass" "${pgsql_dir}/.pgpass"
-		# common PostgreSQL configs
-		vm_cp2pgsql "$h" "${common_dir}/postgresql.conf" "${pgsql_dir}/postgresql.conf"
-		vm_cp2pgsql "$h" "${common_dir}/pg_ident.conf" "${pgsql_dir}/pg_ident.conf"
-		vm_cp2pgsql "$h" "${common_dir}/pg_hba.conf" "${pgsql_dir}/pg_hba.conf"
-		# pacemaker monitor script
-		vm_ssh "$h" 'mkdir -p bin'
-		vm_cp "$h" "${common_dir}/mon" 'bin/mon'
-		vm_ssh "$h" 'chmod 0755 bin/mon'
-		# psql user config
-		vm_cp "$h" "${common_dir}/psqlrc" '.psqlrc'
-		# htop (used to monitor tests)
-		vm_ssh "$h" 'mkdir -p ~/.config/htop'
-		vm_cp "$h" "${common_dir}/htoprc" '~/.config/htop/tuchanka.htoprc'
-	done;unset h
-done;unset hosts
-# give some time to start services
-sleep 5
-
-# цикл по кластерам, первичная настройка
-for c in "${!cluster_dbs[@]}"
-do
-	# Нужен любой hostname из кластера для ssh доступа (настройка всех машин через одну)
-	h="$(first_vm $c)"
-	vm_ssh "$h" "pcs cluster auth ${vm_name[$Witness]} ${cluster_vms[$c]} -u hacluster -p '${hacluster_password}'"
-	vm_ssh "$h" "pcs cluster setup --wait --name tuchanka${c} --transport udp --encryption 1 ${cluster_vms[$c]}"
-	# Иногда при работе кластера, в том числе при cluster start --all, возникает отказ в работе.
-	# Выглядит как CPU load 114, предполагаю, что при некоторых условиях pacemaker начинает
-	# бесконечно размножать процессы. Надеюсь эта опция поможет решить эту проблему.
-	# Не знаю, является ли эта проблема специфичной для VirtualBox или общая. 2 потому что на
-	# виртуалках два виртуальных ядра. В реальности должно быть разумное значиние, например количество ядер
-	# на сервере или около того. Поскольку устанавливать property можно только после поднятия кластера,
-	# а проблему появляется иногда при поднятии кластера, выставляю эту опцию еще до поднятия кластера,
-	# путем редактирования CIB файла напрямую.
-	for hh in ${cluster_vms[$c]}
-	do
-		vm_ssh "$hh" "pcs -f '${cib}' property set node-action-limit=2"
-	done;unset hh
-	vm_ssh "$h" 'pcs stonith sbd enable'
-	# В redhat работают .... Включение sbd автоматичесий включает auto_tie_breaker, который конфликтует и не нужен в случае quorum device.
-	# Поэтому строчкой ниже workaround.
-	vm_ssh "$h" 'pcs quorum update auto_tie_breaker=0 --force'
-	vm_ssh "$h" 'pcs cluster start --all --wait'
-	# добавляю кворум девайс, если количетво машин четное
-	if  [ $(($(count_words ${cluster_vms[$c]})&1)) -eq 0 ]
-	then
-		# the sync_timeout must be at least 4 times greater, then timeout/dpd_interval
-		# explanation https://lists.clusterlabs.org/pipermail/users/2019-August/026145.html
-		vm_ssh "$h" "pcs quorum device add sync_timeout=40000 model net host='${vm_name[$Witness]}' algorithm=ffsplit"
-		# manual check: pcs quorum device status
-	fi
-	vm_ssh "$h" 'pcs property set stonith-enabled=true'
-	# Должно быть примерно в 2 раза больше, чем SBD_WATCHDOG_TIMEOUT в /etc/sysconfig/sbd в виртуалке
-	vm_ssh "$h" 'pcs property set stonith-watchdog-timeout=10'
-done;unset c
-
-# Цикл по DB
-for db in "${!db_port[@]}"
-do
-	# config_name используется в именах конфигов, соотвествует имени float_ip соответствующего мастеру этой DB
-	config_name="${float_name[$db]}" pgport="${db_port[$db]}"
-	m="${db_setup_master[$db]}"
-	pgdata="${pgsql_dir}/${config_name}" custom_conf="${config_name}.conf" restore_paf="${config_name}.paf" pacemaker_script="${config_name}"
-	restore_sh="restore${config_name#'krogan'}"
-	echo "Configure ${config_name}"
-	vm_ssh "$m" "su --login postgres -c \"pg_ctl init --wait --pgdata='${pgdata}' --options='--locale=ru_RU.UTF-8 --lc-messages=en_US.UTF-8 --auth-local=peer --auth-host=scram-sha-256'\""
-	# pg_ident.conf pg_hba.conf postgresql.conf common for all databases
-	vm_ssh "$m" "cp -a '${pgdata}/postgresql.conf' '${pgdata}/postgresql.conf.original'"
-	vm_ssh "$m" "echo -e \"include='postgresql.conf.original'\ninclude_if_exists='../postgresql.conf'\ninclude_if_exists='../${custom_conf}'\" >|'${pgdata}/postgresql.conf'"
-	vm_cp2pgsql "$m" "${upload_dir}/${m}/${custom_conf}" "${pgsql_dir}/${custom_conf}"
-	vm_cp2pgsql "$m" "${upload_dir}/${m}/${restore_paf}" "${pgsql_dir}/${restore_paf}"
-	# without -t is freezed here
-	vm_ssh -t "$m" "su -l postgres -c \"pg_ctl start --wait --options='--synchronous_standby_names=' --pgdata='${pgdata}'\""
-	# создаю пользователя для репликации, пароль захардкожен, возможно в будущем будет другой способ аутентикации
-	vm_ssh "$m" "psql postgres postgres --no-psqlrc --port=${pgport} --command=\"create user replicant with password 'Nexus 6' replication\""
-	for h in ${db_setup_slaves[$db]}
-	do
-		vm_cp2pgsql "$h" "${upload_dir}/${h}/${custom_conf}" "${pgsql_dir}/${custom_conf}"
-		vm_cp2pgsql "$h" "${upload_dir}/${h}/${restore_paf}" "${pgsql_dir}/${restore_paf}"
-		vm_ssh "$h" "su -l postgres -c \"pg_basebackup --pgdata='${pgdata}' --dbname='host=${m} port=${pgport} user=replicant sslmode=disable' --progress --write-recovery-conf\""
-		vm_ssh -t "$h" "su -l postgres -c \"pg_ctl start --wait --pgdata='${pgdata}'\""
-		echo "Wait for starting replication on slave $h"
-		while true
-		do
-			replication_status=$(vm_ssh "$h" "psql --no-psqlrc --quiet --tuples-only --expanded --port=${pgport} postgres postgres --command=\"select status from pg_stat_wal_receiver where sender_host='${m}'\"")
-			[ "$replication_status" = 'status | streaming' ] && break
-			sleep 5
-		done
-	done;unset h
-	# now stoping, master must be first
-	for h in $m ${db_setup_slaves[$db]}
-	do
-		vm_ssh "$h" "su -l postgres -c \"pg_ctl stop --wait --pgdata='${pgdata}'\""
-		vm_cp "$h" "${pcs_dir}/${pacemaker_script}" "${pacemaker_script}"
-		vm_ssh "$h" "cat >'bin/${restore_sh}'" <<-EOF
-			#!/bin/bash
-			# safe bash
-			set -o errexit -o noclobber -o nounset -o pipefail -o xtrace
-
-			# postgres must not be running
-			command su -l postgres -c "! pg_ctl --pgdata='${pgdata}' status"
-			# Временно, потом надо будет переделать чтобы был с бэкапом старой копии в S3
-			command rm -rf '${pgdata}'
-			command rm -f '/tmp/.s.PGSQL.${pgport}.lock'
-			# Если бэкапить таким образом, заканчивается место в виртуалках
-			#command mv '${pgdata}' "${pgdata}.\$(date --iso-8601=seconds)"
-			command su -l postgres -c "pg_basebackup --pgdata='${pgdata}' --dbname='host=${config_name} port=${pgport} user=replicant sslmode=disable' --progress"
-			EOF
-		vm_ssh "$h" "chmod 755 'bin/${restore_sh}'"
-		vm_cp "$h" "${upload_dir}/${h}/restore" "bin/"
-	done;unset h
-	# При `pg_ctl stop --wait` pg_ctl ждет когда postgresql удалит свой pid файл.
-	# Есть подозрение, что этого недостаточно, поставил дополнительную задержку.
-	sleep 5
-	# список команд для pcs для создания ресурса DB в кластере pacemaker
-	vm_ssh "$m" "./'${pacemaker_script}'"
-done;unset db
-
-# heartbeat DB
-# И строго говоря надо сначала надо убедиться что postgresql встал и есть плавающий ip и работать через плавающий ip.
-# Но из-за проблем с отсутствием аутентификации (на данном этапе), работать буду через ssh и peer аутентификацию.
-# Цикл по DB
-for db in "${!db_port[@]}"
-do
-	pgport="${db_port[$db]}"
-	float_master="${float_name[$db]}"
-	master="${db_setup_master[$db]}"
-	echo "Install heartbeat into ${master}"
-	# Ожидание поднятия плавающих ip
-	echo "Waiting for ping ${float_master}"
-	while ! ping -q -c 1 "${float_master}"
-	do
-		sleep 5
-	done
-	vm_ssh "$master" "psql --no-psqlrc --port=${pgport} postgres postgres" <"${heartbeat_dir}/heartbeat.sql"
-done;unset db
-
-# Проверка работоспособности для дополнительной уверенности (используется heatbeat DB)
-for c in "${!cluster_dbs[@]}"
-do
-	wait_healthy $c
-done;unset c
-# цикл по кластерам, завершение перед выключением
-for c in "${!cluster_dbs[@]}"
-do
-	vm_ssh "$(first_vm $c)" "pcs cluster stop --all --wait"
-done;unset c
-# При `pg_ctl stop --wait` pg_ctl ждет когда postgresql удалит свой pid файл.
-# Есть подозрение, что этого недостаточно, поставил дополнительную задержку.
-# Тесты подвердили полезность задежки после `pcs cluster stop --all --wait`
-sleep 5
-
-if $autoVirtualBox
+if ! tmux has-session -t tuchanka_setup_clusters
 then
-	delete_snapshot 'setup'
-	snapshot 'setup' 'The snapshot was taken at the end of the "setup" script.'
-else
-	echo 'При автоматической установке здесь сохраняется snapshot с настроенным кластером и установленной БД "heartbeat".'
+	tmux new-session -d -s tuchanka_setup_clusters -n tuchanka_setup_clusters -x $COLUMNS -y $LINES
+	tmux set-option mouse on
+	tmux set-option status off
+	# may be need for debug
+	# tmux set-window-option remain-on-exit on
+
+	declare -i n=${#cluster_vms[@]} i=0
+	for c in ${!cluster_vms[@]}
+	do
+		tmux respawn-pane -k "sleep $i && '${setup_dir}/setup1' ${c}"
+		if [ $n -gt 1 ]
+		then
+			tmux split-window -v -p $((100-100/n))
+			let n-=1
+		fi
+		let i+=1
+	done; unset c n i
+	# tmux select-layout tiled
+	tmux select-pane -t '0'
 fi
+
+tmux attach-session -t tuchanka_setup_clusters
 
 exit 0

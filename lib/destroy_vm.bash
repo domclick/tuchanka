@@ -6,18 +6,18 @@
 if is_function_absent 'destroy_vm'
 then
 	function destroy_vm {
-		local vms="${*:-"${vm_name[*]}"}"
-		local vm is
-		power_off $vms
-		for vm in $vms
+		local hosts="${*:-"${!vm_name[*]}"}"
+		local h is
+		power_off $hosts
+		for h in $hosts
 		do
-			is=$(VBoxManage list vms | is_grep "^\"${vm}\" ")
+			is=$(VBoxManage list vms | is_grep "^\"${vm_name[$h]}\" ")
 			if $is
 			then
-				echo "Destroy ${vm}"
-				VBoxManage unregistervm "${vm}" --delete
+				echo "Destroy ${vm_name[$h]}"
+				VBoxManage unregistervm "${vm_name[$h]}" --delete
 			fi
-		done;unset vm is
+		done;unset h is
 	}
 	readonly -f destroy_vm
 fi

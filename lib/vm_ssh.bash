@@ -34,24 +34,33 @@ then
 fi
 if is_function_absent 'vm_ssh'
 then
-	# $@ передается ssh
-	function vm_ssh { ssh -F "${ssh_config}" -o "UserKnownHostsFile=\"${ssh_known_hosts}\"" "$@";}
+	# $1 VM
+	# остальное передается ssh
+	function vm_ssh {
+		local h=$1 r
+		shift
+		[ -t 1 ] && echo -ne "\\0033[38;5;${vm_prompt[$h]}m"
+		ssh -F "${ssh_config}" -o "UserKnownHostsFile=\"${ssh_known_hosts}\"" "${vm_name[$h]}" "$@"
+		r=$?
+		[ -t 1 ] && echo -ne '\0033[m'
+		return $r
+	}
 	readonly -f vm_ssh
 fi
 if is_function_absent 'vm_cp'
 then
 	function vm_cp
 	{
-		local host="$1" from_path="$2" to_path="$3"
-		scp -F "${ssh_config}" -o "UserKnownHostsFile=\"${ssh_known_hosts}\"" -q "${from_path}" "${host}:${to_path}"
+		local h=$1 from_path="$2" to_path="$3"
+		scp -F "${ssh_config}" -o "UserKnownHostsFile=\"${ssh_known_hosts}\"" -q "${from_path}" "${vm_name[$h]}:${to_path}"
 	}
 	readonly -f vm_cp
 fi
 if is_function_absent 'vm_cp2pgsql'
 then
 	function vm_cp2pgsql {
-		local host="$1" from_path="$2" to_path="$3"
-		vm_ssh "${host}" "su postgres -c \"umask 0177 && cat >|'${to_path}'\"" <"${from_path}"
+		local h=$1 from_path="$2" to_path="$3"
+		vm_ssh $h "su postgres -c \"umask 0177 && cat >|'${to_path}'\"" <"${from_path}"
 	}
 	readonly -f vm_cp2pgsql
 fi

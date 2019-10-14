@@ -20,8 +20,8 @@ do
 		continue
 	fi
 	h="$REPLY"
-	echo -ne "\n${h}"
+	echo -ne "\n${vm_name[$h]}"
 	# copy/pasted from lib/vm_ssh.bash
-	tmux respawn-pane -t "${pane_mon}" -k "'${lib_dir}/vm_ssh' '${h}' -t 'crm_mon -rDfAi 0.1'"
-	tmux respawn-pane -t "${pane_top}" -k "'${lib_dir}/vm_ssh' '${h}' -t 'HTOPRC=~/.config/htop/tuchanka.htoprc htop'"
+	tmux respawn-pane -t "${pane_mon}" -k "'${lib_dir}/vm_ssh' ${h} -t 'crm_mon -rDfAi 0.1'"
+	tmux respawn-pane -t "${pane_top}" -k "'${lib_dir}/vm_ssh' ${h} -t 'HTOPRC=~/.config/htop/tuchanka.htoprc htop'"
 done;unset h

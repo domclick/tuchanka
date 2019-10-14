@@ -35,10 +35,6 @@ readonly ssh_config="${root_dir}/ssh_config" ssh_known_hosts="${root_dir}/ssh_kn
 # Возможны варианты, поэтому команда вынесена в конфиг.
 # В default_config эта команда загружает дефолтные ключи из ~/.ssh, пароли для них берет из keychain.
 readonly vm_ssh_load_key='ssh-add -A'
-# http proxy url
-# http proxy должна быть устойчива к эффекту громоподобного стада при первой загрузке
-# например squid с опцией collapsed_forwarding on
-proxy_url='http://witness.tuchanka:3128'
 
 # Cluster ID
 # Номера кластеров, оформленны в виде переменных, чтобы потом было удобнее искать их использовать.
@@ -151,26 +147,26 @@ float_name[$Krogan1a]='krogan1a'
 # Имена плавающих IP рабов
 db_slaves[$Krogan1a]=''
 db_port[$Krogan1a]=5433
-db_setup_master[$Krogan1a]='tuchanka1a'
+db_setup_master[$Krogan1a]="$Tuchanka1a"
 # адреса рабов	БД, которые используются при первичной настройке с помощью pg_ctl
 # до создания кластера pacemaker
-db_setup_slaves[$Krogan1a]='tuchanka1b'
+db_setup_slaves[$Krogan1a]="$Tuchanka1b"
 
 readonly Krogan1b=16
 float_ip[$Krogan1b]="${vboxnet_prefix}.${Krogan1b}"
 float_name[$Krogan1b]='krogan1b'
 db_slaves[$Krogan1b]=''
 db_port[$Krogan1b]=5434
-db_setup_master[$Krogan1b]='tuchanka1b'
-db_setup_slaves[$Krogan1b]='tuchanka1a'
+db_setup_master[$Krogan1b]="$Tuchanka1b"
+db_setup_slaves[$Krogan1b]="$Tuchanka1a"
 
 readonly Krogan2=25
 float_ip[$Krogan2]="${vboxnet_prefix}.${Krogan2}"
 float_name[$Krogan2]='krogan2'
 db_slaves[$Krogan2]='krogan2s1'
 db_port[$Krogan2]=5432
-db_setup_master[$Krogan2]='tuchanka2a'
-db_setup_slaves[$Krogan2]='tuchanka2b'
+db_setup_master[$Krogan2]="$Tuchanka2a"
+db_setup_slaves[$Krogan2]="$Tuchanka2b"
 readonly Krogan2s1=26
 float_ip[$Krogan2s1]="${vboxnet_prefix}.${Krogan2s1}"
 float_name[$Krogan2s1]='krogan2s1'
@@ -180,9 +176,9 @@ float_ip[$Krogan3]="${vboxnet_prefix}.${Krogan3}"
 float_name[$Krogan3]='krogan3'
 db_slaves[$Krogan3]='krogan3s1 krogan3s2'
 db_port[$Krogan3]=5432
-db_setup_master[$Krogan3]='tuchanka3a'
+db_setup_master[$Krogan3]="$Tuchanka3a"
 # several slaves separated by space
-db_setup_slaves[$Krogan3]='tuchanka3b tuchanka3c'
+db_setup_slaves[$Krogan3]="$Tuchanka3b $Tuchanka3c"
 readonly Krogan3s1=36
 float_ip[$Krogan3s1]="${vboxnet_prefix}.${Krogan3s1}"
 float_name[$Krogan3s1]='krogan3s1'
@@ -195,9 +191,9 @@ float_ip[$Krogan4]="${vboxnet_prefix}.${Krogan4}"
 float_name[$Krogan4]='krogan4'
 db_slaves[$Krogan4]='krogan4s1 krogan4s2 krogan4s3'
 db_port[$Krogan4]=5432
-db_setup_master[$Krogan4]='tuchanka4a'
+db_setup_master[$Krogan4]="$Tuchanka4a"
 # several slaves separated by space
-db_setup_slaves[$Krogan4]='tuchanka4b tuchanka4c tuchanka4d'
+db_setup_slaves[$Krogan4]="$Tuchanka4b $Tuchanka4c $Tuchanka4d"
 readonly Krogan4s1=46
 float_ip[$Krogan4s1]="${vboxnet_prefix}.${Krogan4s1}"
 float_name[$Krogan4s1]='krogan4s1'
@@ -211,17 +207,22 @@ float_name[$Krogan4s3]='krogan4s3'
 readonly -a float_ip float_name db_slaves db_port db_setup_master db_setup_slaves
 
 # Все виртуалки кластера, двухмерные массивы в bash отсутствуют, имитирую списком разделенным пробелами
-cluster_vms[$Group0]='witness'
+cluster_vms[$Group0]="$Witness"
 
-cluster_vms[$Cluster1]='tuchanka1a tuchanka1b'
+cluster_vms[$Cluster1]="$Tuchanka1a $Tuchanka1b"
 cluster_dbs[$Cluster1]="$Krogan1a $Krogan1b"
 
-cluster_vms[$Cluster2]='tuchanka2a tuchanka2b'
+cluster_vms[$Cluster2]="$Tuchanka2a $Tuchanka2b"
 cluster_dbs[$Cluster2]="$Krogan2"
 
-cluster_vms[$Cluster3]='tuchanka3a tuchanka3b tuchanka3c'
+cluster_vms[$Cluster3]="$Tuchanka3a $Tuchanka3b $Tuchanka3c"
 cluster_dbs[$Cluster3]="$Krogan3"
 
-cluster_vms[$Cluster4]='tuchanka4a tuchanka4b tuchanka4c tuchanka4d'
+cluster_vms[$Cluster4]="$Tuchanka4a $Tuchanka4b $Tuchanka4c $Tuchanka4d"
 cluster_dbs[$Cluster4]="$Krogan4"
 readonly -a cluster_vms cluster_dbs
+
+# http proxy url
+# http proxy должна быть устойчива к эффекту громоподобного стада при первой загрузке
+# например squid с опцией collapsed_forwarding on
+readonly proxy_url="http://${vm_name[$Witness]}.tuchanka:3128"

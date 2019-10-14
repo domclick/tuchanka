@@ -6,27 +6,27 @@
 if is_function_absent 'power_on'
 then
 	function power_on {
-		local vms="${*:-"${vm_name[*]}"}"
-		local vm is
-		for vm in $vms
+		local hosts="${*:-"${!vm_name[*]}"}"
+		local h is
+		for h in $hosts
 		do
-			is=$(is_vm_running "$vm")
+			is=$(is_vm_running $h)
 			if ! $is
 			then
-				echo "Start ${vm}"
-				VBoxManage startvm "$vm"
+				echo "Start ${vm_name[$h]}"
+				VBoxManage startvm "${vm_name[$h]}"
 			fi
-		done;unset vm
-		for vm in $vms
+		done;unset h
+		for h in $hosts
 		do
-			echo "Waiting for system on ${vm}"
+			echo "Waiting for system on ${vm_name[$h]}"
 			# Тут как ошибки ssh так и ненулевой возврат systemctl is-system-running
 			# должны приводить к дальнейшему ожиданию
-			until vm_ssh "$vm" 'systemctl is-system-running'
+			until vm_ssh $h 'systemctl is-system-running'
 			do
 				sleep 5
 			done
-		done;unset vm
+		done;unset h
 		sleep 5
 	}
 	readonly -f power_on

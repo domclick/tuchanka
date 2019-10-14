@@ -1,5 +1,5 @@
 # $1 snapshot name
-# остальные - VM имена, которые надо откатить, если пусто - все
+# остальные - список VM, которые надо откатить, если пусто - все
 . "${lib_dir}/is_function_absent.bash"
 . "${lib_dir}/is_snapshot.bash"
 
@@ -8,17 +8,17 @@ then
 	function delete_snapshot {
 		local snapshot_name="$1"
 		shift 1
-		local vms="${*:-"${vm_name[*]}"}"
-		local vm is
+		local hosts="${*:-"${!vm_name[*]}"}"
+		local h is
 
-		for vm in $vms
+		for h in $hosts
 		do
-			is=$(is_snapshot "$snapshot_name" "$vm")
+			is=$(is_snapshot "${snapshot_name}" $h)
 			if $is
 			then
-				VBoxManage snapshot "$vm" delete "$snapshot_name"
+				VBoxManage snapshot "${vm_name[$h]}" delete "${snapshot_name}"
 			fi
-		done;unset vm
+		done;unset h
 	}
 	readonly -f delete_snapshot
 fi

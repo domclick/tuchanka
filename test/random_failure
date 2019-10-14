@@ -50,8 +50,8 @@ then
 	done; unset c
 	tmux select-pane -t "${pane_mon[$Cluster3]}"
 
-	rollback 'setup' "${vm_name[$Witness]}"
-	power_on "${vm_name[$Witness]}"
+	rollback 'setup' $Witness
+	power_on $Witness
 fi
 
 tmux attach-session -t tuchanka_test_random_failure

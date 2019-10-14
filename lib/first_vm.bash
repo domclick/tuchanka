@@ -1,5 +1,5 @@
 # Возвращает первую виртуалку кластера
-# $1 cluster ID
+# $1 cluster
 . "${lib_dir}/is_function_absent.bash"
 . "${lib_dir}/first_word.bash"
 if is_function_absent 'first_vm'

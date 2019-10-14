@@ -1,11 +1,11 @@
-# $1 cluster ID to test
+# $1 cluster to test
 . "${lib_dir}/is_function_absent.bash"
 if is_function_absent 'wait_ready'
 then
 	function wait_ready {
-		local cluster_id=$1
+		local c=$1
 		local db master slaves slave date
-		for db in ${cluster_dbs[${cluster_id}]}
+		for db in ${cluster_dbs[$c]}
 		do
 			master="${float_name[$db]}:${db_port[$db]}"
 			# В случае ошибок - ожидание
@@ -19,7 +19,7 @@ then
 			slaves=''
 			for slave in ${db_slaves[$db]}
 			do
-				slaves="${slaves},${slave}:${db_port[$db]}"
+				slaves+=",${slave}:${db_port[$db]}"
 			done;unset slave
 			# remove leading ','
 			slaves="${slaves#,}"

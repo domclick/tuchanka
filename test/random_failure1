@@ -31,43 +31,43 @@ break_node=()
 fix_node=()
 # Reset node
 function Reset {
-	VBoxManage controlvm "$1" reset
+	VBoxManage controlvm "${vm_name[$1]}" reset
 }
 readonly -f Reset
 break_node+=('Reset')
 # PowerOff node
 function PowerOff {
-	power_off "$1"
+	power_off $1
 }
 readonly -f PowerOff
 break_node+=('PowerOff')
 # ShutDown node
 function ShutDown {
-	shut_down "$1"
+	shut_down $1
 }
 readonly -f ShutDown
 break_node+=('ShutDown')
 # Unlink node (net isolation)
 function UnLink {
-	VBoxManage controlvm "$1" setlinkstate1 off
+	VBoxManage controlvm "${vm_name[$1]}" setlinkstate1 off
 }
 readonly -f UnLink
 break_node+=('UnLink')
 # Postgres-KILL
 function Postgres-KILL {
-	vm_ssh "$1" "killall -KILL postgres"
+	vm_ssh $1 "killall -KILL postgres"
 }
 readonly -f Postgres-KILL
 break_node+=('Postgres-KILL')
 # Postgres-STOP
 function Postgres-STOP {
-	vm_ssh "$1" "killall -STOP postgres"
+	vm_ssh $1 "killall -STOP postgres"
 }
 readonly -f Postgres-STOP
 break_node+=('Postgres-STOP')
 # SBD-STOP (test watchdog)
 function SBD-STOP {
-	vm_ssh "$1" "killall -STOP sbd"
+	vm_ssh $1 "killall -STOP sbd"
 	sleep 5 # watchdog timer
 }
 readonly -f SBD-STOP
@@ -75,7 +75,7 @@ break_node+=('SBD-STOP')
 # Fork Bomb (test "out of memory")
 function ForkBomb {
 	# После форк бомбы ssh дисконнектит с ненулевым кодом возврата, игнорю
-	vm_ssh "$1" -o "ServerAliveInterval 5" -o "ServerAliveCountMax 1" ':(){ :|:& };:&' || true
+	vm_ssh $1 -o "ServerAliveInterval 5" -o "ServerAliveCountMax 1" ':(){ :|:& };:&' || true
 	sleep 5
 }
 readonly -f ForkBomb
@@ -83,7 +83,7 @@ break_node+=('ForkBomb')
 # Test out of disk space
 function OutOfSpace {
 	# Может завершать работу с ненулевым возвратом, игнорю
-	vm_ssh "$1" "f=\"\$(mktemp)\";exec 3>\"\$f\";rm \"\$f\";cat /dev/zero >&3;sleep 10" || true
+	vm_ssh $1 "f=\"\$(mktemp)\";exec 3>\"\$f\";rm \"\$f\";cat /dev/zero >&3;sleep 10" || true
 }
 readonly -f OutOfSpace
 break_node+=('OutOfSpace')
@@ -95,35 +95,35 @@ function test_node {
 	local c=$1 f=$2
 	local h unbroken time
 	# random node from the cluster
-	h="$(random_word ${cluster_vms[$c]})"
+	h=$(random_word ${cluster_vms[$c]})
 	for unbroken in ${cluster_vms[$c]}
 	do
-		if [ "$unbroken" != "$h" ]
+		if [ $unbroken -ne $h ]
 		then
 			break
 		fi
 	done;
-	echo "$unbroken" >&4
+	echo $unbroken >&4
 	wait_healthy $c
-	tick+ "${break_node[$f]} $h"
+	tick+ "${break_node[$f]} ${vm_name[$h]}"
 	time=$(now) # засекаю время
-	${break_node[$f]} "$h"
+	${break_node[$f]} $h
 	sleep 5 # some time to propagate events
 	tick "Ready? tuchanka${c}"
 	wait_ready $c
 	time=$(($(now)-$time))
 	tick "${break_node[$f]} reaction ${time}s"
-	tick "Fix $h"
-	wait_stable $c "$h"
-	power_off "$h"
+	tick "Fix ${vm_name[$h]}"
+	wait_stable $c $h
+	power_off $h
 	# запоминаю время, должна быть пауза не меньше 60, чтобы пропали сообщения о фенсинге
 	time=$(now)
-	VBoxManage modifyvm "$h" --cableconnected1 on
-	power_on "$h"
+	VBoxManage modifyvm "${vm_name[$h]}" --cableconnected1 on
+	power_on $h
 	wait_ready $c
 	time=$(($(now)-$time))
 	sleep $((60-$time))
-	vm_ssh "$h" "/root/bin/restore"
+	vm_ssh $h '/root/bin/restore'
 }
 readonly -f test_node
 
@@ -135,7 +135,7 @@ do
 	tick "Boot tuchanka${c}"
 	power_on ${cluster_vms[$c]}
 	tick "Start tuchanka${c}"
-	vm_ssh "$(first_vm $c)" "pcs cluster start --all"
+	vm_ssh $(first_vm $c) 'pcs cluster start --all'
 done;unset c
 
 # check all failure

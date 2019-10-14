@@ -14,9 +14,9 @@ while true
 do
 	tick+
 	power_on
-	for h in ${vm_name[@]}
+	for hostname in "${vm_name[@]}"
 	do
-		VBoxManage controlvm "$h" reset
+		VBoxManage controlvm "${hostname}" reset
 	done
 	sleep 1
 done

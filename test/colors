@@ -14,17 +14,17 @@ then
 	tmux set-option status off
 
 	declare -i n=${#vm_name[@]} i=0
-	for vm in "${!vm_name[@]}"
+	for h in "${!vm_name[@]}"
 	do
 		tmux pipe-pane -I "cat <<-EOF
 			#my favorite PS1
-			PS1='\\[\\e[38;5;'\"${vm_prompt[$vm]}\"'m\\]'
+			PS1='\\[\\e[38;5;'\"${vm_prompt[$h]}\"'m\\]'
 			PS1=\"\\\$PS1\"'\\t j\\j '
 			PS1=\"\\\$PS1\"'\\u'
 			PS1=\"\\\$PS1\"'@\\h:\\w\\n'
-			PS1=\"\\\$PS1\"'\\[\\e]12;'\"${vm_cursor[$vm]}\"'\\a\\]'
+			PS1=\"\\\$PS1\"'\\[\\e]12;'\"${vm_cursor[$h]}\"'\\a\\]'
 			PS1=\"\\\$PS1\"'\\\\\$ \\[\\e[m\\]'
-			echo host=${vm_name[$vm]} prompt=${vm_prompt[$vm]} cursor=${vm_cursor[$vm]}
+			echo host=${vm_name[$h]} prompt=${vm_prompt[$h]} cursor=${vm_cursor[$h]}
 			EOF"
 		if [ $n -gt 1 ]
 		then
@@ -32,7 +32,7 @@ then
 			let n-=1
 		fi
 		let i+=1
-	done; unset vm n i
+	done; unset h n i
 	tmux select-layout tiled
 	tmux select-pane -t '0'
 fi

@@ -1,5 +1,5 @@
 # $1 snapshot name
-# остальные - VM имена, которые надо откатить, если пусто - все
+# остальные - VM, которые надо откатить, если пусто - все
 . "${lib_dir}/is_function_absent.bash"
 . "${lib_dir}/power_off.bash"
 
@@ -8,17 +8,17 @@ then
 	function rollback {
 		local snapshot_name="$1"
 		shift
-		local vms="${*:-"${vm_name[*]}"}"
-		local vm
+		local hosts="${*:-"${!vm_name[*]}"}"
+		local h
 
-		power_off $vms
+		power_off $hosts
 
-		for vm in $vms
+		for h in $hosts
 		do
-			echo "Rollback ${vm} to \"${snapshot_name}\""
-			VBoxManage snapshot "$vm" restore "${snapshot_name}"
+			echo "Rollback ${vm_name[$h]} to \"${snapshot_name}\""
+			VBoxManage snapshot "${vm_name[$h]}" restore "${snapshot_name}"
 			sleep 1
-		done;unset vm
+		done;unset h
 	}
 	readonly -f rollback
 fi

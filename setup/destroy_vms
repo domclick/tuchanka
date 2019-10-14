@@ -1,11 +1,10 @@
 #!/bin/bash
 # safe bash
-set -o errexit -o noclobber -o nounset -o pipefail
+set -o errexit -o noclobber -o nounset -o pipefail -o xtrace
 
 # get config
 readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 . "${root_dir}/load_config.bash"
-. "${lib_dir}/is_grep.bash"
 
 if $autoVirtualBox
 then
