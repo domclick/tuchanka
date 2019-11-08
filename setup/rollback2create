@@ -1,0 +1,17 @@
+#!/bin/bash
+# safe bash
+set -o errexit -o noclobber -o nounset -o pipefail
+
+# get config
+readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
+. "${root_dir}/load_config.bash"
+
+if ! $autoVirtualBox
+then
+	echo 'Этот скрипт работает только со snapshot сделанными в VirtualBox.'
+	exit 1
+fi
+
+. "${lib_dir}/rollback.bash"
+rollback 'create'
+exit 0
