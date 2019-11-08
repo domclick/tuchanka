@@ -116,7 +116,7 @@ Bash скрипты для создания и удаления виртуало
 	192.168.89.106	krogan4s1 krogan4s1.tuchanka
 	192.168.89.107	krogan4s2 krogan4s2.tuchanka
 	192.168.89.108	krogan4s3 krogan4s3.tuchanka
-	192.168.89.254	virtualbox virtualbox.tuchanka
+	192.168.89.254	virtualbox
 
 #### ~/.ssh/config
 Добавил строчки:

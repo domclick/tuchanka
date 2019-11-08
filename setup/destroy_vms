@@ -9,18 +9,7 @@ readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 if $autoVirtualBox
 then
 	. "${lib_dir}/destroy_vm.bash"
-
 	destroy_vm
-
-	# get name for hostonlyif
-	vboxnet_if="$(VBoxManage list hostonlyifs|
-		tr '\n' '§'|sed -nE "/^.*Name:[[:space:]]+([[:alnum:]]+)§GUID:[^§]+§DHCP:[^§]+§IPAddress:[[:space:]]+${vboxnet_hostip//./\.}§.*$/ s//\1/p")"
-	if [ -n "${vboxnet_if}" ]
-	then
-		VBoxManage hostonlyif remove "${vboxnet_if}"
-		echo "removed vboxnet_if=>${vboxnet_if}"
-	fi
-	unset -v vboxnet_if
 else
 	echo 'При автоматической установке здесь удаляются виртуалки и интерфейс админского компьютера во внутренней подсетке.'
 fi

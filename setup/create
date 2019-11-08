@@ -79,13 +79,13 @@ then
 	# generate etc_hosts file
 	for h in "${!vm_name[@]}"
 	do
-		echo -e "${vm_ip[$h]}\t${vm_name[$h]} ${vm_name[$h]}.tuchanka"
+		echo -e "${vm_ip[$h]}\t${vm_name[$h]} ${vm_name[$h]}.${vm_domain}"
 	done > "${etc_hosts}";unset h
 	for db in "${!float_ip[@]}"
 	do
-		echo -e "${float_ip[$db]}\t${float_name[$db]} ${float_name[$db]}.tuchanka"
+		echo -e "${float_ip[$db]}\t${float_name[$db]} ${float_name[$db]}.${vm_domain}"
 	done >> "${etc_hosts}";unset db
-	echo -e "${vboxnet_hostip}\tvirtualbox virtualbox.tuchanka" >> "${etc_hosts}"
+	echo -e "${vboxnet_hostip}\tvirtualbox" >> "${etc_hosts}"
 
 	if $autoVirtualBox
 	then
@@ -103,8 +103,7 @@ then
 			VBoxManage hostonlyif ipconfig "${vboxnet_if}" --ip "${vboxnet_hostip}"
 			echo "created vboxnet_if=>${vboxnet_if}"
 		else
-			echo "Error: vboxnet_if=>${vboxnet_if} already exists" 1>&2
-			exit 5
+			echo "vboxnet_if=>${vboxnet_if} already exists" 1>&2
 		fi
 		# будет использоваться при распараллеленной инсталяции
 		export dvd_iso ssh_public_key vboxnet_if
