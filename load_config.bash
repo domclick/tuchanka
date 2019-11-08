@@ -2,7 +2,7 @@
 # если нужно внести изменения, то скопировать default_config.bash в config.bash и его уже править
 
 # проверка на то, что конфиг еще не был загружен
-if ! declare -p 'autoVirtualBox' &>/dev/null
+if ! declare -p 'vboxnet_hostip' &>/dev/null
 then
 	if [ -s "${root_dir}/config.bash" ]
 	then
