@@ -8,7 +8,7 @@ then
 		local snapshot="$1" h=$2
 		# VBoxManage snapshot возвращает 1 если нет снэпшотов
 		# перехватываю ошибку и игнорирую.
-		{ VBoxManage snapshot "${vm_name[$h]}" list --machinereadable || [ $? -eq 1 ];} | is_grep "^SnapshotName\(-[[:digit:]]\+\)\?=\"${snapshot}\"\$"
+		{ VBoxManage snapshot "${vm_name[$h]}" list --machinereadable || [ $? -eq 1 ];} | is_grep "^SnapshotName\([-[:digit:]]\+\)\?=\"${snapshot}\"\$"
 	}
 	readonly -f is_snapshot
 fi
