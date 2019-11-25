@@ -22,7 +22,7 @@ then
 			echo "Waiting for system on ${vm_name[$h]}"
 			# Тут как ошибки ssh так и ненулевой возврат systemctl is-system-running
 			# должны приводить к дальнейшему ожиданию
-			until vm_ssh $h 'systemctl is-system-running'
+			until vm_ssh $h -o 'ConnectTimeout 1' 'systemctl is-system-running'
 			do
 				sleep 5
 			done
