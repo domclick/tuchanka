@@ -16,14 +16,8 @@ readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 . "${lib_dir}/wait_ready.bash"
 . "${lib_dir}/wait_stable.bash"
 
-# $@ список кластеров, которые надо протестировать, если пустой, то все
-readonly clusters="${*:-${!cluster_dbs[*]}}"
-
-# Проверяю, открыт ли 4, если нет, перенаправляю его на /dev/null
-if ! { >&4; } 2>/dev/null
-then
-	exec 4>/dev/null
-fi
+# не ставлю readonly из-за странного конфликта с декларирования local переменных в функциях
+c="$1" pane_mon="$2"
 
 # у нижеопрепределяемых функций
 # $1 VM name of the node to test
@@ -89,10 +83,9 @@ readonly -f OutOfSpace
 break_node+=('OutOfSpace')
 
 # test defined cluster for defined failure
-# $1 cluster ID
-# $2 fault ID (break_node array index)
+# $1 fault ID (break_node array index)
 function test_node {
-	local c=$1 f=$2
+	local f=$1
 	local h unbroken time
 	# random node from the cluster
 	h=$(random_word ${cluster_vms[$c]})
@@ -103,7 +96,7 @@ function test_node {
 			break
 		fi
 	done;
-	echo $unbroken >&4
+	tmux respawn-pane -t "${pane_mon}" -k "'${lib_dir}/vm_ssh' ${unbroken} -t 'crm_mon -rDfAi 0.1'"
 	wait_healthy $c
 	tick+ "${break_node[$f]} ${vm_name[$h]}"
 	time=$(now) # засекаю время
@@ -127,32 +120,22 @@ function test_node {
 }
 readonly -f test_node
 
-for c in $clusters
-do
-	echo >&4
-	tick "Rollback tuchanka${c}"
-	rollback 'setup' ${cluster_vms[$c]}
-	tick "Boot tuchanka${c}"
-	power_on ${cluster_vms[$c]}
-	tick "Start tuchanka${c}"
-	vm_ssh $(first_vm $c) 'pcs cluster start --all'
-done;unset c
+tick "Rollback tuchanka${c}"
+rollback 'setup' ${cluster_vms[$c]}
+tick "Boot tuchanka${c}"
+power_on ${cluster_vms[$c]}
+tick "Start tuchanka${c}"
+vm_ssh $(first_vm $c) 'pcs cluster start --all'
 
 # check all failure
 for f in ${!break_node[@]}
 do
-	for c in $clusters
-	do
-		test_node $c $f
-	done;unset c
+	test_node $f
 done;unset f
 
 # random failure
 while true
 do
-	for c in $clusters
-	do
-		f=$(random_word ${!break_node[@]})
-		test_node $c $f
-	done;unset c f
-done
+	f=$(random_word ${!break_node[@]})
+	test_node $f
+done;unset f

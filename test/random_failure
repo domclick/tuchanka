@@ -8,7 +8,11 @@ readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 . "${lib_dir}/power_on.bash"
 . "${lib_dir}/power_off.bash"
 . "${lib_dir}/rollback.bash"
+. "${lib_dir}/count_words.bash"
 
+# $@ список кластеров, которые надо протестировать, если пустой, то все
+readonly clusters="${*:-${!cluster_dbs[*]}}"
+#FIXME
 cluster_hb1[$Cluster1]="'${heartbeat_dir}/heart1a'"
 cluster_hb2[$Cluster1]="'${heartbeat_dir}/heart1b'"
 cluster_hb1[$Cluster2]="'${heartbeat_dir}/heart2'"
@@ -18,17 +22,17 @@ cluster_hb2[$Cluster3]="'${heartbeat_dir}/reader3'"
 cluster_hb1[$Cluster4]="'${heartbeat_dir}/heart4'"
 cluster_hb2[$Cluster4]="'${heartbeat_dir}/reader4'"
 readonly -a cluster_hb1 cluster_hb2
-declare -a pane_hb1 pane_hb2 pane_mon_host pane_log pane_mon pane_test
+declare -a pane_hb1 pane_hb2 pane_log pane_mon pane_test
 
 
 if ! tmux has-session -t tuchanka_test_random_failure
 then
+	declare -i n=$(count_words $clusters)
 	tmux new-session -d -s tuchanka_test_random_failure -n tuchanka_test_random_failure -x $COLUMNS -y $LINES
 	tmux set-option mouse on
 	tmux set-option status off
 	tmux set-window-option remain-on-exit on
-	declare -i n=${#cluster_dbs[@]}
-	for c in ${!cluster_dbs[@]}
+	for c in $clusters
 	do
 		pane_test[$c]="$(tmux display-message -p '#{pane_id}')"
 		if [ $n -gt 1 ]
@@ -36,32 +40,35 @@ then
 			tmux split-window -h -p $((100-100/n))
 			let n-=1
 		fi
-	done; unset c n
-	for c in ${!cluster_dbs[@]}
+	done; unset c
+	for c in $clusters
 	do
-		tmux respawn-pane -t "${pane_test[$c]}" -k "'${test_dir}/random_failure1' ${c} 3>'${test_dir}/test${c}.log' 4>'${test_dir}/monitor${c}'"
-		pane_mon[$c]="$(tmux split-window -t "${pane_test[$c]}" -P -F '#{pane_id}' -v -b -l $((41+5)) true)"
-		pane_log[$c]="$(tmux split-window -P -F '#{pane_id}' -v -b -l 5 "cat '${test_dir}/test${c}.log'")"
-		pane_hb1[$c]="$(tmux split-window -P -F '#{pane_id}' -h -b -l 10 "${cluster_hb1[$c]}")"
-		pane_hb2[$c]="$(tmux split-window -P -F '#{pane_id}' -v -l 3 "${cluster_hb2[$c]}")"
-		pane_mon_host[$c]="$(tmux split-window -P -F '#{pane_id}' -v -l 1 \
-			"'${test_dir}/random_failure_monitor_switcher' '${pane_mon[$c]}' <'${test_dir}/monitor${c}'")"
+		pane_mon[$c]="$(tmux split-window -t "${pane_test[$c]}" -P -F '#{pane_id}' -v -b -l $((41+3)) true)"
+		tmux respawn-pane -t "${pane_test[$c]}" -k "'${test_dir}/random_failure1' ${c} '${pane_mon[$c]}' 3>'${test_dir}/test${c}.log'"
+		pane_log[$c]="$(tmux split-window -t "${pane_mon[$c]}" -P -F '#{pane_id}' -v -b -l 3 "cat '${test_dir}/test${c}.log'")"
+		pane_hb1[$c]="$(tmux split-window -t "${pane_log[$c]}" -P -F '#{pane_id}' -h -b -l 10 "${cluster_hb1[$c]}")"
+		pane_hb2[$c]="$(tmux split-window -t "${pane_hb1[$c]}" -P -F '#{pane_id}' -v -l 1 "${cluster_hb2[$c]}")"
 		for h in ${cluster_vms[$c]}
 		do
 			tmux split-window -t "${pane_test[$c]}" -v -b -l 4 "while true; do '${lib_dir}/vm_ssh' ${h} -t -o 'ConnectTimeout 1' -o 'ServerAliveInterval 1' -o 'ServerAliveCountMax 1' 'HTOPRC=~/.config/htop/tuchanka.htoprc htop'; done"
 		done
 	done; unset c
-	tmux select-pane -t "${pane_mon[$Cluster3]}"
 
-	rollback 'setup' $Witness
-	power_on $Witness
+	rollback 'setup' ${cluster_vms[$Group0]}
+	power_on ${cluster_vms[$Group0]}
 fi
 
 tmux attach-session -t tuchanka_test_random_failure
 # Finish, cleanup
 if ! tmux has-session -t tuchanka_test_random_failure
 then
-	power_off
+	hosts="${cluster_vms[$Group0]}"
+	for c in $clusters
+	do
+		hosts="${hosts} ${cluster_vms[$c]}"
+	done
+	power_off $hosts
+	unset hosts
 fi
 
 exit 0
