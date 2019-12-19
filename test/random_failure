@@ -12,16 +12,6 @@ readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 
 # $@ список кластеров, которые надо протестировать, если пустой, то все
 readonly clusters="${*:-${!cluster_dbs[*]}}"
-#FIXME
-cluster_hb1[$Cluster1]="'${heartbeat_dir}/heart1a'"
-cluster_hb2[$Cluster1]="'${heartbeat_dir}/heart1b'"
-cluster_hb1[$Cluster2]="'${heartbeat_dir}/heart2'"
-cluster_hb2[$Cluster2]="'${heartbeat_dir}/reader2'"
-cluster_hb1[$Cluster3]="'${heartbeat_dir}/heart3'"
-cluster_hb2[$Cluster3]="'${heartbeat_dir}/reader3'"
-cluster_hb1[$Cluster4]="'${heartbeat_dir}/heart4'"
-cluster_hb2[$Cluster4]="'${heartbeat_dir}/reader4'"
-readonly -a cluster_hb1 cluster_hb2
 declare -a pane_hb1 pane_hb2 pane_log pane_mon pane_test
 
 
