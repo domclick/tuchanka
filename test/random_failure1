@@ -84,7 +84,7 @@ function OutOfSpace {
 	vm_ssh $1 "f=\"\$(mktemp)\";exec 3>\"\$f\";rm \"\$f\";cat /dev/zero >&3;sleep 10" || true
 }
 readonly -f OutOfSpace
-break_node+=('OutOfSpace')
+#break_node+=('OutOfSpace')
 
 # test defined cluster for defined failure
 # $1 fault ID (break_node array index)
