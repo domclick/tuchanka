@@ -33,15 +33,7 @@ then
 	done; unset c
 	for c in $clusters
 	do
-		pane_mon[$c]="$(tmux split-window -t "${pane_test[$c]}" -P -F '#{pane_id}' -v -b -l $((41+3)) true)"
-		tmux respawn-pane -t "${pane_test[$c]}" -k "'${test_dir}/random_failure1' ${c} '${pane_mon[$c]}' 3>'${test_dir}/test${c}.log'"
-		pane_log[$c]="$(tmux split-window -t "${pane_mon[$c]}" -P -F '#{pane_id}' -v -b -l 3 "cat '${test_dir}/test${c}.log'")"
-		pane_hb1[$c]="$(tmux split-window -t "${pane_log[$c]}" -P -F '#{pane_id}' -h -b -l 10 "${cluster_hb1[$c]}")"
-		pane_hb2[$c]="$(tmux split-window -t "${pane_hb1[$c]}" -P -F '#{pane_id}' -v -l 1 "${cluster_hb2[$c]}")"
-		for h in ${cluster_vms[$c]}
-		do
-			tmux split-window -t "${pane_test[$c]}" -v -b -l 4 "while true; do '${lib_dir}/vm_ssh' ${h} -t -o 'ConnectTimeout 1' -o 'ServerAliveInterval 1' -o 'ServerAliveCountMax 1' 'HTOPRC=~/.config/htop/tuchanka.htoprc htop'; done"
-		done
+		tmux respawn-pane -t "${pane_test[$c]}" -k "'${test_dir}/random_failure1' ${c} '${pane_test[$c]}'"
 	done; unset c
 
 	rollback 'setup' ${cluster_vms[$Group0]}
