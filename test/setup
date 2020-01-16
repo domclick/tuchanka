@@ -1,9 +1,11 @@
 #!/bin/bash
-# safe bash
-set -o errexit -o noclobber -o nounset -o pipefail
 
 # тестирование "наработкой на отказ"  конфигурационных скриптов
 # install не тестирую, чтобы не создавать большой трафик
+
+# safe bash
+set -o errexit -o noclobber -o nounset -o pipefail
+
 # get config
 readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 . "${root_dir}/load_config.bash"
