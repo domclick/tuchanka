@@ -19,10 +19,8 @@ readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 . "${lib_dir}/tmux.bash"
 
 # Индекс кластера
-# не ставлю readonly из-за странного конфликта с декларирования local переменных в функциях
+# не ставлю readonly из-за странного конфликта с декларированием local переменных в функциях
 c="$1"
-# ID панели для этого кластера
-readonly pane_test="$2"
 
 # у нижеопрепределяемых функций
 # $1 VM name of the node to test
@@ -126,6 +124,7 @@ function test_node {
 readonly -f test_node
 
 # Setup tmux panes
+readonly pane_test="${TMUX_PANE}"
 readonly pane_mon="$(tmux split-window -t "${pane_test}" -P -F '#{pane_id}' -v -b -l $((41+3)) '')"
 # for function tick
 readonly tick_destination="$(tmux split-window -t "${pane_mon}" -P -F '#{pane_id}' -v -b -l 3 '')"
