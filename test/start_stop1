@@ -1,0 +1,50 @@
+#!/bin/bash
+# safe bash
+set -o errexit -o noclobber -o nounset -o pipefail -o xtrace
+
+readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
+. "${root_dir}/load_config.bash"
+
+. "${lib_dir}/vm_ssh.bash"
+. "${lib_dir}/rollback.bash"
+. "${lib_dir}/power_on.bash"
+. "${lib_dir}/shut_down.bash"
+. "${lib_dir}/tick.bash"
+. "${lib_dir}/wait_healthy.bash"
+. "${lib_dir}/first_vm.bash"
+. "${lib_dir}/tmux.bash"
+
+# Индекс кластера
+# не ставлю readonly из-за странного конфликта с декларированием local переменных в функциях
+c="$1"
+
+# Setup tmux panes
+readonly pane_test="${TMUX_PANE}"
+# for function tick
+readonly tick_destination="$(tmux split-window -t "${pane_test}" -P -F '#{pane_id}' -v -b -l 10 '')"
+
+# Start VM
+tick "Rollback tuchanka${c}"
+rollback 'setup' ${cluster_vms[$c]}
+tick "Boot tuchanka${c}"
+power_on ${cluster_vms[$c]}
+tick "Wait for quorum device"
+until vm_ssh $Witness "/usr/bin/corosync-qnetd-tool -s"
+do
+	sleep 5
+done
+
+while true
+do
+	tick+ "Boot tuchanka${c}"
+	power_on ${cluster_vms[$c]}
+	tick "Start tuchanka${c}"
+	vm_ssh $(first_vm $c) "pcs --debug cluster start --all --wait"
+	tick "Is healthy? tuchanka${c}"
+	wait_healthy $c
+	tick "Stop tuchanka${c}"
+	vm_ssh "$(first_vm $c)" "pcs --debug cluster stop --all --wait"
+	sleep 5
+	tick "Shutdown tuchanka${c}"
+	shut_down ${cluster_vms[$c]}
+done;
