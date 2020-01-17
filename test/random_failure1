@@ -4,6 +4,7 @@ set -o errexit -o noclobber -o nounset -o pipefail -o xtrace
 
 readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 . "${root_dir}/load_config.bash"
+
 . "${lib_dir}/tick.bash"
 . "${lib_dir}/random_word.bash"
 . "${lib_dir}/first_vm.bash"
@@ -15,13 +16,13 @@ readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 . "${lib_dir}/wait_healthy.bash"
 . "${lib_dir}/wait_ready.bash"
 . "${lib_dir}/wait_stable.bash"
+. "${lib_dir}/tmux.bash"
 
 # Индекс кластера
 # не ставлю readonly из-за странного конфликта с декларирования local переменных в функциях
 c="$1"
 # ID панели для этого кластера
 readonly pane_test="$2"
-echo $c $pane_test
 
 # у нижеопрепределяемых функций
 # $1 VM name of the node to test
@@ -125,10 +126,10 @@ function test_node {
 readonly -f test_node
 
 # Setup tmux panes
-readonly pane_mon="$(tmux split-window -t "${pane_test}" -P -F '#{pane_id}' -v -b -l $((41+3)) true)"
-readonly pane_tick="$(tmux split-window -t "${pane_mon}" -P -F '#{pane_id}' -v -b -l 3 "cat '${test_dir}/test${c}.log'")"
-exec 3>"${test_dir}/test${c}.log"
-readonly pane_hb1="$(tmux split-window -t "${pane_tick}" -P -F '#{pane_id}' -h -b -l 10 "${cluster_hb1[$c]}")"
+readonly pane_mon="$(tmux split-window -t "${pane_test}" -P -F '#{pane_id}' -v -b -l $((41+3)) '')"
+# for function tick
+readonly tick_destination="$(tmux split-window -t "${pane_mon}" -P -F '#{pane_id}' -v -b -l 3 '')"
+readonly pane_hb1="$(tmux split-window -t "${tick_destination}" -P -F '#{pane_id}' -h -b -l 10 "${cluster_hb1[$c]}")"
 readonly pane_hb2="$(tmux split-window -t "${pane_hb1}" -P -F '#{pane_id}' -v -l 1 "${cluster_hb2[$c]}")"
 for h in ${cluster_vms[$c]}
 do

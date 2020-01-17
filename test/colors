@@ -7,34 +7,30 @@ set -o errexit -o noclobber -o nounset -o pipefail -o xtrace
 readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 . "${root_dir}/load_config.bash"
 
-if ! tmux has-session -t tuchanka_test_colors
-then
-	tmux new-session -d -s tuchanka_test_colors -n tuchanka_test_colors -x $COLUMNS -y $LINES
-	tmux set-option mouse on
-	tmux set-option status off
+. "${lib_dir}/tmux.bash"
 
-	declare -i n=${#vm_name[@]} i=0
-	for h in "${!vm_name[@]}"
-	do
-		tmux pipe-pane -I "cat <<-EOF
-			#my favorite PS1
-			PS1='\\[\\e[38;5;'\"${vm_prompt[$h]}\"'m\\]'
-			PS1=\"\\\$PS1\"'\\t j\\j '
-			PS1=\"\\\$PS1\"'\\u'
-			PS1=\"\\\$PS1\"'@\\h:\\w\\n'
-			PS1=\"\\\$PS1\"'\\[\\e]12;'\"${vm_cursor[$h]}\"'\\a\\]'
-			PS1=\"\\\$PS1\"'\\\\\$ \\[\\e[m\\]'
-			echo host=${vm_name[$h]} prompt=${vm_prompt[$h]} cursor=${vm_cursor[$h]}
-			EOF"
-		if [ $n -gt 1 ]
-		then
-			tmux split-window -h -p $((100-100/n))
-			let n-=1
-		fi
-		let i+=1
-	done; unset h n i
-	tmux select-layout tiled
-	tmux select-pane -t '0'
-fi
+tmux_init
 
-tmux attach-session -t tuchanka_test_colors
+declare -i n=${#vm_name[@]} i=0
+for h in "${!vm_name[@]}"
+do
+	tmux pipe-pane -I "cat <<-EOF
+		#my favorite PS1
+		PS1='\\[\\e[38;5;'\"${vm_prompt[$h]}\"'m\\]'
+		PS1=\"\\\$PS1\"'\\t j\\j '
+		PS1=\"\\\$PS1\"'\\u'
+		PS1=\"\\\$PS1\"'@\\h:\\w\\n'
+		PS1=\"\\\$PS1\"'\\[\\e]12;'\"${vm_cursor[$h]}\"'\\a\\]'
+		PS1=\"\\\$PS1\"'\\\\\$ \\[\\e[m\\]'
+		echo host=${vm_name[$h]} prompt=${vm_prompt[$h]} cursor=${vm_cursor[$h]}
+		EOF"
+	if [ $n -gt 1 ]
+	then
+		tmux split-window -h -p $((100-100/n))
+		let n-=1
+	fi
+	let i+=1
+done; unset h n i
+tmux select-layout tiled
+
+tmux_attach

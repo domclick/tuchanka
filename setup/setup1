@@ -5,16 +5,16 @@
 set -o errexit -o noclobber -o nounset -o pipefail -o xtrace -o errtrace
 # $1 ID кластера
 c="$1"
-# Запускаться будет в pane tmux, которая автоматический закрывается, поэтому ставлю паузу на errexit.
-trap "read -p 'Error is detected, the installation is interupted. Press Enter'" 'ERR'
 # get config
 readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 . "${root_dir}/load_config.bash"
+
 . "${lib_dir}/vm_ssh.bash"
 . "${lib_dir}/wait_healthy.bash"
 . "${lib_dir}/first_vm.bash"
 . "${lib_dir}/count_words.bash"
 . "${lib_dir}/is_grep.bash"
+. "${lib_dir}/tmux.bash"
 
 if $autoVirtualBox
 then
@@ -292,5 +292,7 @@ then
 else
 	echo 'При автоматической установке создается снепшот "setup".'
 fi
+
+tmux set-option -p -t "${TMUX_PANE}" remain-on-exit off
 
 exit 0
