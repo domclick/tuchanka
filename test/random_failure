@@ -13,8 +13,7 @@ readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 . "${lib_dir}/tmux.bash"
 
 readonly clusters="${*:-${!cluster_dbs[*]}}"
-declare -a pane_hb1 pane_hb2 pane_log pane_mon pane_test
-
+declare -a pane_test
 declare -i n=$(count_words $clusters)
 tmux_init
 for c in $clusters
