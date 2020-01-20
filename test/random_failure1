@@ -16,6 +16,7 @@ readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 . "${lib_dir}/wait_healthy.bash"
 . "${lib_dir}/wait_ready.bash"
 . "${lib_dir}/wait_stable.bash"
+. "${lib_dir}/wait_qdevice.bash"
 . "${lib_dir}/tmux.bash"
 
 # Индекс кластера
@@ -139,12 +140,9 @@ tick "Rollback tuchanka${c}"
 rollback 'setup' ${cluster_vms[$c]}
 tick "Boot tuchanka${c}"
 power_on ${cluster_vms[$c]}
+tick "Wait for quorum device"
+wait_qdevice
 tick "Start tuchanka${c}"
-# wait witness quorum device
-until vm_ssh $Witness "/usr/bin/corosync-qnetd-tool -s"
-do
-	sleep 5
-done
 vm_ssh $(first_vm $c) 'pcs cluster start --all'
 
 # check all failure

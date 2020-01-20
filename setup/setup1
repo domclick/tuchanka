@@ -11,6 +11,7 @@ readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 
 . "${lib_dir}/vm_ssh.bash"
 . "${lib_dir}/wait_healthy.bash"
+. "${lib_dir}/wait_qdevice.bash"
 . "${lib_dir}/first_vm.bash"
 . "${lib_dir}/count_words.bash"
 . "${lib_dir}/is_grep.bash"
@@ -122,11 +123,6 @@ else
 		# psql user config
 		vm_cp $h "${common_dir}/psqlrc" '.psqlrc'
 	done;unset h
-	# wait witness quorum device
-	until vm_ssh $Witness "/usr/bin/corosync-qnetd-tool -s"
-	do
-		sleep 5
-	done
 
 	# Список имен хостов в кластере
 	hosts=''
@@ -138,6 +134,8 @@ else
 	hosts="${hosts#' '}"
 	# Нужен любой hostname из кластера для ssh доступа (настройка всех машин через одну)
 	h="$(first_vm $c)"
+	# Wait for quorum device
+	wait_qdevice
 	vm_ssh $h "pcs cluster auth ${vm_name[$Witness]} ${hosts} -u hacluster -p '${hacluster_password}'"
 	vm_ssh $h "pcs cluster setup --wait --name tuchanka${c} --transport udp --encryption 1 ${hosts}"
 	unset hosts
