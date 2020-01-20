@@ -13,7 +13,7 @@ then
 			is=$(is_vm_running $h)
 			if ! $is
 			then
-				echo "Start ${vm_name[$h]}"
+				echo "PowerOn ${vm_name[$h]}"
 				VBoxManage startvm "${vm_name[$h]}"
 			fi
 		done;unset h

@@ -1,4 +1,5 @@
 #!/bin/bash
+# $@ номера кластеров, если пустой то все (включая Group0)
 # safe bash
 set -o errexit -o noclobber -o nounset -o pipefail
 
@@ -13,5 +14,11 @@ then
 fi
 
 . "${lib_dir}/rollback.bash"
-rollback 'install'
+. "${lib_dir}/clusters2hosts.bash"
+
+# $@ номера кластеров, если пустой то все (включая Group0)
+readonly clusters="${*:-${!cluster_vms[*]}}"
+
+rollback 'install' $(clusters2hosts ${clusters})
+
 exit 0

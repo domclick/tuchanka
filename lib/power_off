@@ -1,6 +1,6 @@
 #!/bin/bash
-# simple wrapper for library function power_off
-# $@ go to the function power_off
+# Выключает кластера
+# $@ номера кластеров, если пустой то все (включая Group0)
 
 # safe bash
 set -o errexit -o noclobber -o nounset -o pipefail
@@ -9,5 +9,9 @@ set -o errexit -o noclobber -o nounset -o pipefail
 readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 . "${root_dir}/load_config.bash"
 . "${lib_dir}/power_off.bash"
+. "${lib_dir}/clusters2hosts.bash"
 
-power_off "$@"
+# $@ номера кластеров, если пустой то все (включая Group0)
+readonly clusters="${*:-${!cluster_vms[*]}}"
+
+power_off $(clusters2hosts ${clusters})

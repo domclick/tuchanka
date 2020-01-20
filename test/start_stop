@@ -12,6 +12,7 @@ readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 . "${lib_dir}/rollback.bash"
 . "${lib_dir}/power_on.bash"
 . "${lib_dir}/power_off.bash"
+. "${lib_dir}/clusters2hosts.bash"
 
 readonly clusters="${*:-${!cluster_dbs[*]}}"
 declare -a pane_test
@@ -31,18 +32,12 @@ do
 	tmux respawn-pane -t "${pane_test[$c]}" -k "'${test_dir}/start_stop1' ${c}"
 done; unset c
 
-rollback 'setup' ${cluster_vms[$Group0]}
-power_on ${cluster_vms[$Group0]}
+rollback 'setup' ${cluster_vms[${Group0}]}
+power_on ${cluster_vms[${Group0}]}
 
 tmux_attach
 
 # Finish, cleanup
-hosts="${cluster_vms[$Group0]}"
-for c in $clusters
-do
-	hosts="${hosts} ${cluster_vms[$c]}"
-done
-power_off $hosts
-unset hosts
+power_off $(clusters2hosts ${Group0} ${clusters})
 
 exit 0

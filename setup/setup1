@@ -125,20 +125,20 @@ else
 	done;unset h
 
 	# Список имен хостов в кластере
-	hosts=''
+	host_names=''
 	for h in ${cluster_vms[$c]}
 	do
-		hosts+=" ${vm_name[$h]}"
+		host_names+=" ${vm_name[$h]}"
 	done; unset h
 	# remove leading ' '
-	hosts="${hosts#' '}"
+	host_names="${host_names#' '}"
 	# Нужен любой hostname из кластера для ssh доступа (настройка всех машин через одну)
 	h="$(first_vm $c)"
 	# Wait for quorum device
 	wait_qdevice
-	vm_ssh $h "pcs cluster auth ${vm_name[$Witness]} ${hosts} -u hacluster -p '${hacluster_password}'"
-	vm_ssh $h "pcs cluster setup --wait --name tuchanka${c} --transport udp --encryption 1 ${hosts}"
-	unset hosts
+	vm_ssh $h "pcs cluster auth ${vm_name[$Witness]} ${host_names} -u hacluster -p '${hacluster_password}'"
+	vm_ssh $h "pcs cluster setup --wait --name tuchanka${c} --transport udp --encryption 1 ${host_names}"
+	unset host_names
 	# Иногда при работе кластера, в том числе при cluster start --all, возникает отказ в работе.
 	# Выглядит как CPU load 114, предполагаю, что при некоторых условиях pacemaker начинает
 	# бесконечно размножать процессы. Надеюсь эта опция поможет решить эту проблему.

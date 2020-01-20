@@ -12,6 +12,7 @@ then
 			is=$(is_vm_running $h)
 			if $is
 			then
+				echo "PowerOff ${vm_name[$h]}"
 				VBoxManage controlvm "${vm_name[$h]}" poweroff
 			fi
 		done;unset h

@@ -15,6 +15,7 @@ then
 			if $is
 			then
 				#VBoxManage controlvm "${vm_name[$h]}" acpipowerbutton
+				echo "ShutDown ${vm_name[$h]}"
 				# Выкинет с ненулевым кодом
 				vm_ssh $h "poweroff" || true
 				sleep 1 # обхожу баг с ошибочными мессаджами в GUI

@@ -1,4 +1,9 @@
 #!/bin/bash
+# $@ номера кластеров, если пустой то все (включая Group0)
+# Создает одновременный ssh ко всем указанным кластерам.
+# Для того чтобы одновременно печатать во всех терминалках
+# нужно в tmux задать:
+# (C-b :) set-option synchronize-panes on
 # safe bash
 set -o errexit -o noclobber -o nounset -o pipefail -o xtrace
 
@@ -7,11 +12,17 @@ readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/"
 . "${root_dir}/load_config.bash"
 . "${lib_dir}/vm_ssh.bash"
 . "${lib_dir}/tmux.bash"
+. "${lib_dir}/clusters2hosts.bash"
+. "${lib_dir}/count_words.bash"
+
+# $@ номера кластеров, если пустой то все (включая Group0)
+readonly clusters="${*:-${!cluster_vms[*]}}"
+readonly hosts=$(clusters2hosts ${clusters})
 
 tmux_init
 
-declare -i n=${#vm_name[@]} i=0
-for h in "${!vm_name[@]}"
+declare -i n=$(count_words ${hosts}) i=0
+for h in ${hosts}
 do
 	tmux respawn-pane -k "'${lib_dir}/vm_ssh' $h -t"
 	if [ $n -gt 1 ]
