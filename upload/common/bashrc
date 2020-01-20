@@ -10,24 +10,19 @@ export PROMPT_COLOR='255'
 [[ -f ~/.bashrc_local ]] && . ~/.bashrc_local
 #my favorite PS1
 unset PS1
-case "$TERM" in
-xterm*|rxvt*)
-	PS1='\[\e[38;5;'"$PROMPT_COLOR"'m\]'
-	PS1="$PS1"'\t j\j '
-	[[ $UID == 0 ]] && { PS1="$PS1"'\[\e[38;5;'"$root_prompt_color"'m\]'; }
-	PS1="$PS1"'\u'
-	[[ $UID == 0 ]] && { PS1="$PS1"'\[\e[38;5;'"$PROMPT_COLOR"'m\]'; }
-	PS1="$PS1"'@\h:\w\n'
-	PS1="$PS1"'\[\e]12;'"$CURSOR_COLOR"'\a\]'
-	if [[ $UID == 0 ]]; then
-		PS1="$PS1"'\[\e[38;5;'"$root_prompt_color"'m\]'
-	else
-		PS1="$PS1"'\[\e[38;5;'"$PROMPT_COLOR"'m\]'
-	fi
-	PS1="$PS1"'\$ \[\e[m\]'
-	;;
-*)
-	PS1='\t j\j \u@\h:\w\n\$ '
-	;;
-esac
+PS1='\[\e[38;5;'"$PROMPT_COLOR"'m\]'
+PS1="$PS1"'\t j\j '
+[[ $UID == 0 ]] && { PS1="$PS1"'\[\e[38;5;'"$root_prompt_color"'m\]'; }
+PS1="$PS1"'\u'
+[[ $UID == 0 ]] && { PS1="$PS1"'\[\e[38;5;'"$PROMPT_COLOR"'m\]'; }
+PS1="$PS1"'@\h:\w\n'
+PS1="$PS1"'\[\e]12;'"$CURSOR_COLOR"'\a\]'
+if [[ $UID == 0 ]]; then
+	PS1="$PS1"'\[\e[38;5;'"$root_prompt_color"'m\]'
+else
+	PS1="$PS1"'\[\e[38;5;'"$PROMPT_COLOR"'m\]'
+fi
+PS1="$PS1"'\$ \[\e[m\]'
+# uncolored
+#PS1='\t j\j \u@\h:\w\n\$ '
 complete -C '/usr/bin/aws_completer' aws
