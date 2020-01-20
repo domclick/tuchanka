@@ -27,7 +27,7 @@ do
 done; unset c
 for c in $clusters
 do
-	tmux respawn-pane -t "${pane_test[$c]}" -k "'${test_dir}/random_failure1' ${c}"
+	tmux respawn-pane -t "${pane_test[$c]}" -k "'${test_dir}/failure1' ${c}"
 done; unset c
 
 rollback 'setup' ${cluster_vms[$Group0]}
