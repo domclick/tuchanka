@@ -6,7 +6,7 @@
 set -o errexit -o noclobber -o nounset -o pipefail
 
 # get config
-readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
+readonly root_dir="$(dirname "${BASH_SOURCE[0]}")"
 . "${root_dir}/load_config.bash"
 . "${lib_dir}/shut_down.bash"
 . "${lib_dir}/clusters2hosts.bash"

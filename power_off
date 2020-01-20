@@ -1,17 +1,17 @@
 #!/bin/bash
-# Включает кластера
+# Выключает кластера
 # $@ номера кластеров, если пустой то все (включая Group0)
 
 # safe bash
 set -o errexit -o noclobber -o nounset -o pipefail
 
 # get config
-readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
+readonly root_dir="$(dirname "${BASH_SOURCE[0]}")"
 . "${root_dir}/load_config.bash"
-. "${lib_dir}/power_on.bash"
+. "${lib_dir}/power_off.bash"
 . "${lib_dir}/clusters2hosts.bash"
 
 # $@ номера кластеров, если пустой то все (включая Group0)
 readonly clusters="${*:-${!cluster_vms[*]}}"
 
-power_on $(clusters2hosts ${clusters})
+power_off $(clusters2hosts ${clusters})
