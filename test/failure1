@@ -125,11 +125,11 @@ readonly -f test_node
 
 # Setup tmux panes
 readonly pane_test="${TMUX_PANE}"
-readonly pane_mon="$(tmux split-window -t "${pane_test}" -P -F '#{pane_id}' -v -b -l $((41+3)) '')"
+readonly pane_mon="$(tmux split-window -t "${pane_test}" -P -F '#{pane_id}' -v -b -l $((41+5)) '')"
 # for function tick
-readonly tick_destination="$(tmux split-window -t "${pane_mon}" -P -F '#{pane_id}' -v -b -l 3 '')"
+readonly tick_destination="$(tmux split-window -t "${pane_mon}" -P -F '#{pane_id}' -v -b -l 5 '')"
 readonly pane_hb1="$(tmux split-window -t "${tick_destination}" -P -F '#{pane_id}' -h -b -l 10 "${cluster_hb1[$c]}")"
-readonly pane_hb2="$(tmux split-window -t "${pane_hb1}" -P -F '#{pane_id}' -v -l 1 "${cluster_hb2[$c]}")"
+readonly pane_hb2="$(tmux split-window -t "${pane_hb1}" -P -F '#{pane_id}' -v -l 2 "${cluster_hb2[$c]}")"
 for h in ${cluster_vms[$c]}
 do
 	tmux split-window -t "${pane_test}" -v -b -l 4 "while true; do '${lib_dir}/vm_ssh' ${h} -t -o 'ConnectTimeout 1' -o 'ServerAliveInterval 1' -o 'ServerAliveCountMax 1' 'HTOPRC=~/.config/htop/tuchanka.htoprc htop'; done"

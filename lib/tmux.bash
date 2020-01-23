@@ -47,7 +47,7 @@ fi
 if is_function_absent 'tmux_attach'
 then
 	function tmux_attach {
-		tmux select-pane -t '{top-left}' ';' attach-session -t "=${tmux_session}"
+		tmux select-pane -t '{bottom-right}' ';' attach-session -t "=${tmux_session}"
 		#сброс к дефолтному цвету, вдруг надо
 		echo -ne '\0033[m'
 		tmux_cleanup
