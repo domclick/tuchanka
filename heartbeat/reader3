@@ -1,5 +1,0 @@
-#!/bin/sh
-LC_NUMERIC=en_US.UTF-8 exec watch -n 0.1 -t -d --exec psql \
-	--dbname='postgresql://heartbeat:ChangeMe@krogan3s1,krogan3s2/heartbeat?connect_timeout=2&application_name=reader3&keepalives=1&keepalives_idle=1&keepalives_interval=1&keepalives_count=1&target_session_attrs=any' \
-	--command='select beat from heartbeat' \
-	--no-align --quiet --tuples-only --no-psqlrc
