@@ -1,9 +1,8 @@
 # Для обоих функций:
 # $@ опциональный комментарий к tick
 # $tick_destination указывает в какую tmux pane выводить tick:
-# если неопределен или пустой, то stdout
-# если 'status_line', то в status line у tmux
 # pane id, то в этот tmux pane
+# если неопределен или пустой, то stdout
 
 # Идея этой функции сделать своеобразный progress meter для тестов выполняемых в цикле
 # Пишет в номер текущей итерации и время, так же, опционально, можно добавить комментарий
@@ -21,16 +20,11 @@ then
 	# функция для вывода тика, в качестве опционального аргумента может быть сообщение (комментарий)
 	# параметры вызова см выше
 	function tick {
-		if [ 'status_line' == "${tick_destination:=}" ]
-		then
-			tmux display-message "${tick_counter} $(date '+%T') $*"
+		if [ -n "${tick_destination}" ]
+		then # destination is pane id
+			echo -ne "\n${tick_counter} $(date '+%T') $*"|tmux display-message -t "${tick_destination}" -I
 		else
-			if [ -n "${tick_destination}" ]
-			then # destination is pane id
-				echo -ne "\n${tick_counter} $(date '+%T') $*"|tmux display-message -t "${tick_destination}" -I
-			else
-				echo "${tick_counter} $(date '+%T') $*"
-			fi
+			echo "${tick_counter} $(date '+%T') $*"
 		fi
 	}
 	readonly -f tick

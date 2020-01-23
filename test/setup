@@ -1,19 +1,24 @@
 #!/bin/bash
-
 # тестирование "наработкой на отказ"  конфигурационных скриптов
 # install не тестирую, чтобы не создавать большой трафик
 
 # safe bash
-set -o errexit -o noclobber -o nounset -o pipefail
+set -o errexit -o noclobber -o nounset -o pipefail -o xtrace
 
 # get config
 readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 . "${root_dir}/load_config.bash"
 
-. "${lib_dir}/tick.bash"
+. "${lib_dir}/tmux.bash"
+. "${lib_dir}/power_off.bash"
 
-while true
-do
-	tick+
-	"${setup_dir}/setup"
-done
+tmux_init
+
+tmux respawn-pane -k "${test_dir}/setup1"
+
+tmux_attach
+
+# Finish, cleanup
+power_off
+
+exit 0

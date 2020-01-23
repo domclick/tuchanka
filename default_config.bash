@@ -237,4 +237,3 @@ readonly -a cluster_vms cluster_dbs cluster_hb1 cluster_hb2
 readonly proxy_url="http://${vm_name[$Witness]}.${vm_domain}:3128"
 
 readonly tmux_default_socket='Tuchanka' tmux_session='Tuchanka' tmux_window='Tuchanka'
-export tmux_socket="${tmux_default_socket}" tmux_session tmux_window

@@ -1,5 +1,4 @@
 #!/bin/bash
-# Проверка на стабильность при массовом откате
 # safe bash
 set -o errexit -o noclobber -o nounset -o pipefail -o xtrace
 
@@ -7,16 +6,15 @@ set -o errexit -o noclobber -o nounset -o pipefail -o xtrace
 readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 . "${root_dir}/load_config.bash"
 
+. "${lib_dir}/tick.bash"
 . "${lib_dir}/tmux.bash"
-. "${lib_dir}/power_off.bash"
 
-tmux_init
+tick_destination="$(tmux split-window -P -F '#{pane_id}' -h -b -d -l 15 '')"
 
-tmux respawn-pane -k "${test_dir}/rollback1"
-
-tmux_attach
-
-# Finish, cleanup
-power_off
+while true
+do
+	tick+
+	"${setup_dir}/setup"
+done
 
 exit 0
