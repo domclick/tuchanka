@@ -1,39 +1,48 @@
 \set ON_ERROR_STOP 'on'
 CREATE USER heartbeat WITH PASSWORD 'ChangeMe';
 CREATE DATABASE heartbeat;
+
 \c heartbeat
 BEGIN;
 CREATE TABLE heartbeat (beat time(1) NOT NULL);
 INSERT INTO heartbeat VALUES (LOCALTIME(1));
-GRANT SELECT,UPDATE ON TABLE heartbeat TO heartbeat;
-CREATE PROCEDURE heart(IN _name text DEFAULT '') LANGUAGE plpgsql AS
+
+CREATE FUNCTION heart() RETURNS time LANGUAGE sql VOLATILE SECURITY DEFINER PARALLEL UNSAFE AS
 $heart$
-DECLARE
-	_beat heartbeat.beat%TYPE;
-BEGIN
-	LOOP
-		UPDATE heartbeat SET beat=LOCALTIME(1) RETURNING beat INTO _beat;
-		RAISE INFO E'\r%\033[H\033[Kheart %:\r',_beat,_name;
-		COMMIT;
-		PERFORM pg_sleep(0.1);
-		COMMIT;
-	END LOOP;
-END
+UPDATE heartbeat SET beat=LOCALTIME(1) RETURNING beat
 $heart$;
-GRANT EXECUTE ON PROCEDURE heart(text) TO heartbeat;
-CREATE PROCEDURE beat(IN _name text DEFAULT '') LANGUAGE plpgsql AS
+GRANT EXECUTE ON FUNCTION heart() TO heartbeat;
+
+CREATE FUNCTION beat() RETURNS time LANGUAGE SQL STABLE SECURITY DEFINER PARALLEL SAFE AS
 $beat$
-DECLARE
-	_beat heartbeat.beat%TYPE;
+SELECT beat FROM heartbeat
+$beat$;
+GRANT EXECUTE ON FUNCTION beat() TO heartbeat;
+
+CREATE PROCEDURE heart4tmux(IN _name text DEFAULT '') LANGUAGE plpgsql AS
+$heart4tmux$
 BEGIN
 	LOOP
-		SELECT beat INTO _beat FROM heartbeat;
-		RAISE INFO E'\r%\033[H\033[Kbeat %:\r',_beat,_name;
+		RAISE INFO E'\r%\033[H\033[Kheart %:\r',(SELECT heart()),_name;
 		COMMIT;
 		PERFORM pg_sleep(0.1);
 		COMMIT;
 	END LOOP;
 END
-$beat$;
-GRANT EXECUTE ON PROCEDURE beat(text) TO heartbeat;
+$heart4tmux$;
+GRANT EXECUTE ON PROCEDURE heart4tmux(text) TO heartbeat;
+
+CREATE PROCEDURE beat4tmux(IN _name text DEFAULT '') LANGUAGE plpgsql AS
+$beat4tmux$
+BEGIN
+	LOOP
+		RAISE INFO E'\r%\033[H\033[Kbeat %:\r',(SELECT beat()),_name;
+		COMMIT;
+		PERFORM pg_sleep(0.1);
+		COMMIT;
+	END LOOP;
+END
+$beat4tmux$;
+GRANT EXECUTE ON PROCEDURE beat4tmux(text) TO heartbeat;
+
 COMMIT;

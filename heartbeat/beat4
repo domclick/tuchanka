@@ -3,7 +3,7 @@ while true;
 do
 	psql \
 		--dbname='postgresql://heartbeat:ChangeMe@krogan4s1,krogan4s2,krogan4s3/heartbeat?connect_timeout=2&application_name=beat4&keepalives=1&keepalives_idle=1&keepalives_interval=1&keepalives_count=1&target_session_attrs=any' \
-		--command="call beat('4')" \
+		--command="call beat4tmux('4')" \
 		--no-align --quiet --tuples-only --no-psqlrc
 	sleep 1
 done
