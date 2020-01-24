@@ -6,7 +6,7 @@ if is_function_absent 'wait_healthy'
 then
 	function wait_healthy {
 		local c=$1
-		local db master slave date h is
+		local db master slaves slave date h is
 		# check that the cluster has all nodes
 		for h in ${cluster_vms[$c]}
 		do
@@ -24,7 +24,22 @@ then
 			date="$(psql --no-align --quiet --tuples-only --no-psqlrc \
 				--dbname="postgresql://heartbeat:ChangeMe@${master}/heartbeat?connect_timeout=2&application_name=wait_healthy.bash&keepalives=1&keepalives_idle=1&keepalives_interval=1&keepalives_count=1&target_session_attrs=read-write" \
 				--command="select heart()")"
-			for slave in ${db_slaves[$db]}
+			if [ -n "${db_slaves[$db]}" ]
+			then
+				slaves="${db_slaves[$db]}"
+			else
+				# По сути костыль для Tuchanka1, официальных slave там нет, но есть неофициальные
+				# и их тоже, по хорошему, надо проверять в случае wait_healthy.
+				# По скольку Tuchanka1 возвращается к исходному состоянию, то можно использовать
+				# адреса со стадии setup при wait_healthy.
+				for h in ${db_setup_slaves[$db]}
+				do
+					slaves+=" ${vm_name[$h]}"
+				done; unset h
+				# remove leading ' '
+				slaves="${slaves#' '}"
+			fi
+			for slave in ${slaves}
 			do
 				slave+=":${db_port[$db]}"
 				# репликация может быть ассинхронной, поэтому обновление может прийти не сразу
