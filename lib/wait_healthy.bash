@@ -2,6 +2,7 @@
 . "${lib_dir}/is_function_absent.bash"
 . "${lib_dir}/vm_ssh.bash"
 . "${lib_dir}/wait_stable.bash"
+. "${lib_dir}/heartbeat.bash"
 if is_function_absent 'wait_healthy'
 then
 	function wait_healthy {
@@ -21,9 +22,7 @@ then
 		for db in ${cluster_dbs[$c]}
 		do
 			master="${float_name[$db]}:${db_port[$db]}"
-			date="$(psql --no-align --quiet --tuples-only --no-psqlrc \
-				--dbname="postgresql://heartbeat:ChangeMe@${master}/heartbeat?connect_timeout=2&application_name=wait_healthy.bash&keepalives=1&keepalives_idle=1&keepalives_interval=1&keepalives_count=1&target_session_attrs=read-write" \
-				--command="select heart()")"
+			date="$(heartbeat_psql "${master}" 'wait_healthy.bash' 'read-write' 'select heart()')"
 			if [ -n "${db_slaves[$db]}" ]
 			then
 				slaves="${db_slaves[$db]}"
@@ -45,9 +44,7 @@ then
 				# репликация может быть ассинхронной, поэтому обновление может прийти не сразу
 				while true
 				do
-					is="$(psql --no-align --quiet --tuples-only --no-psqlrc \
-						--dbname="postgresql://heartbeat:ChangeMe@${slave}/heartbeat?connect_timeout=2&application_name=wait_healthy.bash&keepalives=1&keepalives_idle=1&keepalives_interval=1&keepalives_count=1&target_session_attrs=any" \
-						--command="select beat()>='${date}'")"
+					is="$(heartbeat_psql "${slave}" 'wait_healthy.bash' 'any' "select beat()>='${date}'")"
 					[ "$is" = 't' ] && break
 					sleep 5
 				done

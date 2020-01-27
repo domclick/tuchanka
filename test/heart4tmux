@@ -14,10 +14,7 @@ db=$1
 
 while true;
 do
-	psql \
-		--dbname="postgresql://heartbeat:ChangeMe@${float_name[$db]}:${db_port[$db]}/heartbeat?connect_timeout=2&application_name=heart4tmux&keepalives=1&keepalives_idle=1&keepalives_interval=1&keepalives_count=1&target_session_attrs=read-write" \
-		--command="call heart4tmux('${db_suffix[$db]}')" \
-		--no-align --quiet --tuples-only --no-psqlrc \
+	heartbeat_psql "${float_name[$db]}:${db_port[$db]}" 'heart4tmux' 'read-write' "call heart4tmux('${db_suffix[$db]}')" \
 		|| true
 	sleep 1
 done

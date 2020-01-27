@@ -18,3 +18,25 @@ then
 	}
 	readonly -f slaves4URL
 fi
+if is_function_absent 'heartbeat_psql'
+then
+# Вызов psql для запроса hearbeat
+# Содержит оптимизирующие параметры уменьшающие время реакции, в случае если сервер не отвечает
+	function heartbeat_psql {
+		# $1 Содержит либо ip:port к БД, либо список разделенный запятыми
+		# должны быть ip, а не hostname, так как не факт, что имена хостов будут добавлены в /etc/hosts
+		local ip_port="$1"
+		# $2 application name для передачи БД
+		local application_name="$2"
+		# $3 target_session_attrs: например any или read-write
+		local target_session_attrs="$3"
+		# $4 sql запрос к hearbeat
+		local query="$4"
+		psql \
+			--dbname="postgresql://heartbeat:ChangeMe@${ip_port}/heartbeat?connect_timeout=2&application_name=${application_name}&keepalives=1&keepalives_idle=1&keepalives_interval=1&keepalives_count=1&target_session_attrs=${target_session_attrs}" \
+			--command="${query}" \
+			--no-align --quiet --tuples-only --no-psqlrc \
+			|| return $?
+	}
+	readonly -f heartbeat_psql
+fi

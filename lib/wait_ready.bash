@@ -10,9 +10,7 @@ then
 		do
 			master="${float_name[$db]}:${db_port[$db]}"
 			# В случае ошибок - ожидание
-			until date="$(psql --no-align --quiet --tuples-only --no-psqlrc \
-				--dbname="postgresql://heartbeat:ChangeMe@${master}/heartbeat?connect_timeout=2&application_name=wait_ready.bash&keepalives=1&keepalives_idle=1&keepalives_interval=1&keepalives_count=1&target_session_attrs=read-write" \
-				--command="select heart()")"
+			until date="$(heartbeat_psql "${master}" 'wait_ready.bash' 'read-write' 'select heart()')"
 			do
 				sleep 5
 			done
@@ -21,9 +19,7 @@ then
 			if [ -n "$slaves" ]
 			then
 				# В случае ошибок - ожидание
-				until test "$(psql --no-align --quiet --tuples-only --no-psqlrc \
-					--dbname="postgresql://heartbeat:ChangeMe@${slaves}/heartbeat?connect_timeout=2&application_name=wait_ready.bash&keepalives=1&keepalives_idle=1&keepalives_interval=1&keepalives_count=1&target_session_attrs=any" \
-					--command="select beat()>='${date}'")" = 't'
+				until test "$(heartbeat_psql "${slaves}" 'wait_ready.bash' 'any' "select beat()>='${date}'")" = 't'
 				do
 					# репликация может быть ассинхронной, поэтому обновление может прийти не сразу
 					sleep 5

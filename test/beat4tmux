@@ -14,10 +14,7 @@ db=$1
 
 while true;
 do
-	psql \
-		--dbname="postgresql://heartbeat:ChangeMe@$(slaves4URL $db)/heartbeat?connect_timeout=2&application_name=beat4tmux&keepalives=1&keepalives_idle=1&keepalives_interval=1&keepalives_count=1&target_session_attrs=any" \
-		--command="call beat4tmux('${db_suffix[$db]}')" \
-		--no-align --quiet --tuples-only --no-psqlrc \
+	heartbeat_psql "$(slaves4URL $db)" 'beat4tmux' 'any' "call beat4tmux('${db_suffix[$db]}')" \
 		|| true
 	sleep 1
 done
