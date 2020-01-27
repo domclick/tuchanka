@@ -1,5 +1,6 @@
 # $1 cluster to test
 . "${lib_dir}/is_function_absent.bash"
+. "${lib_dir}/heartbeat.bash"
 if is_function_absent 'wait_ready'
 then
 	function wait_ready {
@@ -16,13 +17,7 @@ then
 				sleep 5
 			done
 			# Убеждаемся, что БД работают, проверка репликации по любому рабу
-			slaves=''
-			for slave in ${db_slaves[$db]}
-			do
-				slaves+=",${slave}:${db_port[$db]}"
-			done;unset slave
-			# remove leading ','
-			slaves="${slaves#,}"
+			slaves="$(slaves4URL $db)"
 			if [ -n "$slaves" ]
 			then
 				# В случае ошибок - ожидание

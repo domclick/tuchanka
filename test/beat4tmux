@@ -1,0 +1,23 @@
+#!/bin/bash
+# Выводит процедуру beat4tmux в окошко tmux
+# $1 DB ID
+
+# safe bash
+set -o errexit -o noclobber -o nounset -o pipefail
+
+readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
+. "${root_dir}/load_config.bash"
+. "${lib_dir}/heartbeat.bash"
+
+# $1 DB ID
+db=$1
+
+while true;
+do
+	psql \
+		--dbname="postgresql://heartbeat:ChangeMe@$(slaves4URL $db)/heartbeat?connect_timeout=2&application_name=beat4tmux&keepalives=1&keepalives_idle=1&keepalives_interval=1&keepalives_count=1&target_session_attrs=any" \
+		--command="call beat4tmux('${db_suffix[$db]}')" \
+		--no-align --quiet --tuples-only --no-psqlrc \
+		|| true
+	sleep 1
+done

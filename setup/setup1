@@ -179,7 +179,7 @@ else
 		custom_conf="${config_name}.conf"
 		restore_paf="${config_name}.paf"
 		pacemaker_script="${config_name}"
-		restore_sh="restore${config_name#'krogan'}"
+		restore_sh="restore${db_suffix[$db]}"
 		echo "Configure ${config_name}"
 		vm_ssh $m "su --login postgres -c \"pg_ctl init --wait --pgdata='${pgdata}' --options='--locale=ru_RU.UTF-8 --lc-messages=en_US.UTF-8 --auth-local=peer --auth-host=scram-sha-256'\""
 		# pg_ident.conf pg_hba.conf postgresql.conf common for all databases
@@ -250,7 +250,7 @@ else
 		do
 			sleep 5
 		done
-		vm_ssh $m "psql --no-psqlrc --port=${pgport} postgres postgres" <"${heartbeat_dir}/heartbeat.sql"
+		vm_ssh $m "psql --no-psqlrc --port=${pgport} postgres postgres" <"${setup_dir}/heartbeat.sql"
 	done;unset db
 
 	# Проверка работоспособности для дополнительной уверенности (используется heatbeat DB)

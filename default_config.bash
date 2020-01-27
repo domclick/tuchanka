@@ -28,8 +28,8 @@ readonly CPUs=2 CPU_execution_cap=50 RAM_MiB=768 VRAM_MiB=10 HDD_MiB=3072 time_z
 # really don't need to change in the test bed, password of hacluster unix user
 readonly hacluster_password='ChangeMe'
 # dirs
-readonly setup_dir="${root_dir}/setup" lib_dir="${root_dir}/lib" test_dir="${root_dir}/test" upload_dir="${root_dir}/upload"
-readonly common_dir="${upload_dir}/common" pcs_dir="${root_dir}/pcs" heartbeat_dir="${root_dir}/heartbeat"
+readonly setup_dir="${root_dir}/setup" lib_dir="${root_dir}/lib" upload_dir="${root_dir}/upload"
+readonly test_dir="${root_dir}/test" common_dir="${upload_dir}/common" pcs_dir="${root_dir}/pcs"
 # files
 readonly ssh_config="${root_dir}/ssh_config" ssh_known_hosts="${root_dir}/ssh_known_hosts" etc_hosts="${root_dir}/etc_hosts"
 # Команда, с помощью которой можно загрузить ключ в ssh-agent для работы с виртуалками
@@ -142,6 +142,7 @@ readonly -a vm_ip vm_name vm_group vm_desc vm_cursor vm_prompt
 
 # ID БД совпадет с ID float_ip(float_name) на котором находится мастер
 readonly Krogan1a=15
+db_suffix[$Krogan1a]='1a'
 float_ip[$Krogan1a]="${vboxnet_prefix}.${Krogan1a}"
 # так же плавающий IP мастера БД
 float_name[$Krogan1a]='krogan1a'
@@ -154,6 +155,7 @@ db_setup_master[$Krogan1a]="$Tuchanka1a"
 db_setup_slaves[$Krogan1a]="$Tuchanka1b"
 
 readonly Krogan1b=16
+db_suffix[$Krogan1b]='1b'
 float_ip[$Krogan1b]="${vboxnet_prefix}.${Krogan1b}"
 float_name[$Krogan1b]='krogan1b'
 db_slaves[$Krogan1b]=''
@@ -162,6 +164,7 @@ db_setup_master[$Krogan1b]="$Tuchanka1b"
 db_setup_slaves[$Krogan1b]="$Tuchanka1a"
 
 readonly Krogan2=25
+db_suffix[$Krogan2]='2'
 float_ip[$Krogan2]="${vboxnet_prefix}.${Krogan2}"
 float_name[$Krogan2]='krogan2'
 db_slaves[$Krogan2]='krogan2s1'
@@ -173,6 +176,7 @@ float_ip[$Krogan2s1]="${vboxnet_prefix}.${Krogan2s1}"
 float_name[$Krogan2s1]='krogan2s1'
 
 readonly Krogan3=35
+db_suffix[$Krogan3]='3'
 float_ip[$Krogan3]="${vboxnet_prefix}.${Krogan3}"
 float_name[$Krogan3]='krogan3'
 db_slaves[$Krogan3]='krogan3s1 krogan3s2'
@@ -188,6 +192,7 @@ float_ip[$Krogan3s2]="${vboxnet_prefix}.${Krogan3s2}"
 float_name[$Krogan3s2]='krogan3s2'
 
 readonly Krogan4=45
+db_suffix[$Krogan4]='4'
 float_ip[$Krogan4]="${vboxnet_prefix}.${Krogan4}"
 float_name[$Krogan4]='krogan4'
 db_slaves[$Krogan4]='krogan4s1 krogan4s2 krogan4s3'
@@ -212,23 +217,23 @@ cluster_vms[$Group0]="$Witness"
 
 cluster_vms[$Cluster1]="$Tuchanka1a $Tuchanka1b"
 cluster_dbs[$Cluster1]="$Krogan1a $Krogan1b"
-cluster_hb1[$Cluster1]="${heartbeat_dir}/heart1a"
-cluster_hb2[$Cluster1]="${heartbeat_dir}/heart1b"
+cluster_hb1[$Cluster1]="${test_dir}/heart4tmux $Krogan1a"
+cluster_hb2[$Cluster1]="${test_dir}/heart4tmux $Krogan1b"
 
 cluster_vms[$Cluster2]="$Tuchanka2a $Tuchanka2b"
 cluster_dbs[$Cluster2]="$Krogan2"
-cluster_hb1[$Cluster2]="${heartbeat_dir}/heart2"
-cluster_hb2[$Cluster2]="${heartbeat_dir}/beat2"
+cluster_hb1[$Cluster2]="${test_dir}/heart4tmux $Krogan2"
+cluster_hb2[$Cluster2]="${test_dir}/beat4tmux $Krogan2"
 
 cluster_vms[$Cluster3]="$Tuchanka3a $Tuchanka3b $Tuchanka3c"
 cluster_dbs[$Cluster3]="$Krogan3"
-cluster_hb1[$Cluster3]="${heartbeat_dir}/heart3"
-cluster_hb2[$Cluster3]="${heartbeat_dir}/beat3"
+cluster_hb1[$Cluster3]="${test_dir}/heart4tmux $Krogan3"
+cluster_hb2[$Cluster3]="${test_dir}/beat4tmux $Krogan3"
 
 cluster_vms[$Cluster4]="$Tuchanka4a $Tuchanka4b $Tuchanka4c $Tuchanka4d"
 cluster_dbs[$Cluster4]="$Krogan4"
-cluster_hb1[$Cluster4]="${heartbeat_dir}/heart4"
-cluster_hb2[$Cluster4]="${heartbeat_dir}/beat4"
+cluster_hb1[$Cluster4]="${test_dir}/heart4tmux $Krogan4"
+cluster_hb2[$Cluster4]="${test_dir}/beat4tmux $Krogan4"
 readonly -a cluster_vms cluster_dbs cluster_hb1 cluster_hb2
 
 # http proxy url
