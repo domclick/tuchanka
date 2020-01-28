@@ -29,7 +29,7 @@ readonly CPUs=2 CPU_execution_cap=50 RAM_MiB=768 VRAM_MiB=10 HDD_MiB=3072 time_z
 readonly hacluster_password='ChangeMe'
 # dirs
 readonly setup_dir="${root_dir}/setup" lib_dir="${root_dir}/lib" upload_dir="${root_dir}/upload"
-readonly test_dir="${root_dir}/test" common_dir="${upload_dir}/common" pcs_dir="${root_dir}/pcs"
+readonly test_dir="${root_dir}/test" common_dir="${upload_dir}/common" pcs_dir="${upload_dir}/pcs"
 # files
 readonly ssh_config="${root_dir}/ssh_config" ssh_known_hosts="${root_dir}/ssh_known_hosts" etc_hosts="${root_dir}/etc_hosts"
 # Команда, с помощью которой можно загрузить ключ в ssh-agent для работы с виртуалками
