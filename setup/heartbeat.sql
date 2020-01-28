@@ -45,4 +45,10 @@ END
 $beat4tmux$;
 GRANT EXECUTE ON PROCEDURE beat4tmux(text) TO heartbeat;
 
+CREATE TABLE reactions (
+	failure text NOT NULL,
+	reaction integer NOT NULL CHECK (reaction>0)
+);
+GRANT SELECT,INSERT ON reactions TO heartbeat;
+
 COMMIT;

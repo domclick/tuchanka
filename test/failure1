@@ -8,6 +8,7 @@ readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 . "${lib_dir}/tick.bash"
 . "${lib_dir}/random_word.bash"
 . "${lib_dir}/first_vm.bash"
+. "${lib_dir}/first_word.bash"
 . "${lib_dir}/now.bash"
 . "${lib_dir}/rollback.bash"
 . "${lib_dir}/power_on.bash"
@@ -18,6 +19,7 @@ readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 . "${lib_dir}/wait_stable.bash"
 . "${lib_dir}/wait_qdevice.bash"
 . "${lib_dir}/tmux.bash"
+. "${lib_dir}/heartbeat.bash"
 
 # Индекс кластера
 # не ставлю readonly из-за странного конфликта с декларированием local переменных в функциях
@@ -84,6 +86,22 @@ function OutOfSpace {
 }
 readonly -f OutOfSpace
 #break_node+=('OutOfSpace')
+readonly -a break_node
+
+# Setup tmux panes
+readonly pane_reactions_height=$((${#break_node[*]}+3)) pane_hb_height=2 pane_hb_width=10 pane_mon_heignt=41
+readonly pane_test="${TMUX_PANE}"
+readonly pane_mon="$(tmux split-window -t "${pane_test}" -P -F '#{pane_id}' -v -b \
+	-l $((${pane_mon_heignt}+${pane_hb_height}+1+${pane_hb_height}+1+${pane_reactions_height})) '')"
+# for function tick
+readonly tick_destination="$(tmux split-window -t "${pane_mon}" -P -F '#{pane_id}' -v -b \
+	-l $((${pane_hb_height}+1+${pane_hb_height}+1+${pane_reactions_height})) '')"
+readonly pane_reactions="$(tmux split-window -t "${tick_destination}" -P -F '#{pane_id}' -v -b -d \
+	-l ${pane_reactions_height} '')"
+readonly pane_hb1="$(tmux split-window -t "${tick_destination}" -P -F '#{pane_id}' -h -b \
+	-l ${pane_hb_width} "${cluster_hb1[$c]}")"
+readonly pane_hb2="$(tmux split-window -t "${pane_hb1}" -P -F '#{pane_id}' -v \
+	-l ${pane_hb_height} "${cluster_hb2[$c]}")"
 
 # test defined cluster for defined failure
 # $1 fault ID (break_node array index)
@@ -109,6 +127,16 @@ function test_node {
 	wait_ready $c
 	time=$(($(now)-$time))
 	tick "${break_node[$f]} reaction ${time}s"
+	local db=$(first_word ${cluster_dbs[$c]})
+	local master="${float_ip[$db]}:${db_port[$db]}"
+	# Очищаю pane
+	echo -ne '\033[H\033[J'|tmux display-message -t "${pane_reactions}" -I
+	# Вывожу таблицу с временем реагирования
+	psql --no-psqlrc --quiet --pset=footer=off \
+		--dbname="postgresql://heartbeat:ChangeMe@${master}/heartbeat?application_name=failure&target_session_attrs=read-write" \
+		--command="INSERT INTO reactions (failure,reaction) VALUES ('${break_node[$f]}',${time});
+			SELECT failure,round(avg(reaction)) as reaction,round(stddev_samp(reaction)) as deviation,count(*) as count FROM reactions GROUP BY failure ORDER BY failure" \
+		| tr -s '\n' | tmux display-message -t "${pane_reactions}" -I
 	tick "Fix ${vm_name[$h]}"
 	wait_stable $c $h
 	power_off $h
@@ -123,13 +151,6 @@ function test_node {
 }
 readonly -f test_node
 
-# Setup tmux panes
-readonly pane_test="${TMUX_PANE}"
-readonly pane_mon="$(tmux split-window -t "${pane_test}" -P -F '#{pane_id}' -v -b -l $((41+5)) '')"
-# for function tick
-readonly tick_destination="$(tmux split-window -t "${pane_mon}" -P -F '#{pane_id}' -v -b -l 5 '')"
-readonly pane_hb1="$(tmux split-window -t "${tick_destination}" -P -F '#{pane_id}' -h -b -l 10 "${cluster_hb1[$c]}")"
-readonly pane_hb2="$(tmux split-window -t "${pane_hb1}" -P -F '#{pane_id}' -v -l 2 "${cluster_hb2[$c]}")"
 for h in ${cluster_vms[$c]}
 do
 	tmux split-window -t "${pane_test}" -v -b -l 4 "while true; do '${lib_dir}/vm_ssh' ${h} -t -o 'ConnectTimeout 1' -o 'ServerAliveInterval 1' -o 'ServerAliveCountMax 1' 'HTOPRC=~/.config/htop/tuchanka.htoprc htop'; done"
