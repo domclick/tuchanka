@@ -21,11 +21,14 @@ then
 		# Убеждаемся, что БД работают, проверка репликации по всем рабам
 		for db in ${cluster_dbs[$c]}
 		do
-			master="${float_name[$db]}:${db_port[$db]}"
+			master="${float_ip[$db]}:${db_port[$db]}"
 			date="$(heartbeat_psql "${master}" 'wait_healthy.bash' 'read-write' 'select heart()')"
 			if [ -n "${db_slaves[$db]}" ]
 			then
-				slaves="${db_slaves[$db]}"
+				for h in ${db_slaves[$db]}
+				do
+					slaves+=" ${float_ip[$h]}"
+				done; unset h
 			else
 				# По сути костыль для Tuchanka1, официальных slave там нет, но есть неофициальные
 				# и их тоже, по хорошему, надо проверять в случае wait_healthy.
@@ -33,11 +36,11 @@ then
 				# адреса со стадии setup при wait_healthy.
 				for h in ${db_setup_slaves[$db]}
 				do
-					slaves+=" ${vm_name[$h]}"
+					slaves+=" ${vm_ip[$h]}"
 				done; unset h
-				# remove leading ' '
-				slaves="${slaves#' '}"
 			fi
+			# remove leading ' '
+			slaves="${slaves#' '}"
 			for slave in ${slaves}
 			do
 				slave+=":${db_port[$db]}"

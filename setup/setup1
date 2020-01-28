@@ -241,7 +241,7 @@ else
 	for db in ${cluster_dbs[$c]}
 	do
 		pgport=${db_port[$db]}
-		float_master="${float_name[$db]}"
+		float_master="${float_ip[$db]}"
 		m=${db_setup_master[$db]}
 		echo "Install heartbeat into ${vm_name[$m]}"
 		# Ожидание поднятия плавающих ip

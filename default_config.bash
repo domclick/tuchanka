@@ -164,49 +164,49 @@ db_setup_master[$Krogan1b]="$Tuchanka1b"
 db_setup_slaves[$Krogan1b]="$Tuchanka1a"
 
 readonly Krogan2=25
+readonly Krogan2s1=26
 db_suffix[$Krogan2]='2'
 float_ip[$Krogan2]="${vboxnet_prefix}.${Krogan2}"
 float_name[$Krogan2]='krogan2'
-db_slaves[$Krogan2]='krogan2s1'
+db_slaves[$Krogan2]="$Krogan2s1"
 db_port[$Krogan2]=5432
 db_setup_master[$Krogan2]="$Tuchanka2a"
 db_setup_slaves[$Krogan2]="$Tuchanka2b"
-readonly Krogan2s1=26
 float_ip[$Krogan2s1]="${vboxnet_prefix}.${Krogan2s1}"
 float_name[$Krogan2s1]='krogan2s1'
 
 readonly Krogan3=35
+readonly Krogan3s1=36
+readonly Krogan3s2=37
 db_suffix[$Krogan3]='3'
 float_ip[$Krogan3]="${vboxnet_prefix}.${Krogan3}"
 float_name[$Krogan3]='krogan3'
-db_slaves[$Krogan3]='krogan3s1 krogan3s2'
+db_slaves[$Krogan3]="$Krogan3s1 $Krogan3s2"
 db_port[$Krogan3]=5432
 db_setup_master[$Krogan3]="$Tuchanka3a"
 # several slaves separated by space
 db_setup_slaves[$Krogan3]="$Tuchanka3b $Tuchanka3c"
-readonly Krogan3s1=36
 float_ip[$Krogan3s1]="${vboxnet_prefix}.${Krogan3s1}"
 float_name[$Krogan3s1]='krogan3s1'
-readonly Krogan3s2=37
 float_ip[$Krogan3s2]="${vboxnet_prefix}.${Krogan3s2}"
 float_name[$Krogan3s2]='krogan3s2'
 
 readonly Krogan4=45
+readonly Krogan4s1=46
+readonly Krogan4s2=47
+readonly Krogan4s3=48
 db_suffix[$Krogan4]='4'
 float_ip[$Krogan4]="${vboxnet_prefix}.${Krogan4}"
 float_name[$Krogan4]='krogan4'
-db_slaves[$Krogan4]='krogan4s1 krogan4s2 krogan4s3'
+db_slaves[$Krogan4]="$Krogan4s1 $Krogan4s2 $Krogan4s3"
 db_port[$Krogan4]=5432
 db_setup_master[$Krogan4]="$Tuchanka4a"
 # several slaves separated by space
 db_setup_slaves[$Krogan4]="$Tuchanka4b $Tuchanka4c $Tuchanka4d"
-readonly Krogan4s1=46
 float_ip[$Krogan4s1]="${vboxnet_prefix}.${Krogan4s1}"
 float_name[$Krogan4s1]='krogan4s1'
-readonly Krogan4s2=47
 float_ip[$Krogan4s2]="${vboxnet_prefix}.${Krogan4s2}"
 float_name[$Krogan4s2]='krogan4s2'
-readonly Krogan4s3=48
 float_ip[$Krogan4s3]="${vboxnet_prefix}.${Krogan4s3}"
 float_name[$Krogan4s3]='krogan4s3'
 

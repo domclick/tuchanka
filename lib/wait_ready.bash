@@ -8,7 +8,7 @@ then
 		local db master slaves slave date
 		for db in ${cluster_dbs[$c]}
 		do
-			master="${float_name[$db]}:${db_port[$db]}"
+			master="${float_ip[$db]}:${db_port[$db]}"
 			# В случае ошибок - ожидание
 			until date="$(heartbeat_psql "${master}" 'wait_ready.bash' 'read-write' 'select heart()')"
 			do
