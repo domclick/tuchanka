@@ -20,6 +20,7 @@ then
 		if [ -n "${tmux_socket:-}" -a -z "${TMUX:-}" ]
 		then
 			(tmux kill-server) || true # ignore error
+			sleep 1 # видимо kill-server выполняется асинхронно
 		fi
 	}
 	readonly -f tmux_cleanup
