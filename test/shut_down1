@@ -18,5 +18,3 @@ do
 	power_on
 	shut_down
 done
-
-exit 0

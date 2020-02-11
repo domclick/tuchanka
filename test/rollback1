@@ -16,5 +16,3 @@ do
 	tick+
 	rollback 'setup'
 done
-
-exit 0

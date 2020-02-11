@@ -16,5 +16,3 @@ do
 	tick+
 	"${setup_dir}/setup"
 done
-
-exit 0

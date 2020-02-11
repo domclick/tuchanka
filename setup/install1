@@ -91,5 +91,4 @@ else
 fi
 
 tmux set-option -p -t "${TMUX_PANE}" remain-on-exit off
-
 exit 0

@@ -9,6 +9,7 @@ readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 
 . "${lib_dir}/tmux.bash"
 
+trap tmux_cleanup EXIT
 tmux_init
 
 declare -i n=${#vm_name[@]} i=0
@@ -34,3 +35,5 @@ done; unset h n i
 tmux select-layout tiled
 
 tmux_attach
+exit 0
+# tmux_cleanup by trap

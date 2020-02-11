@@ -15,3 +15,4 @@ readonly root_dir="$(dirname "${BASH_SOURCE[0]}")"
 readonly clusters="${*:-${!cluster_vms[*]}}"
 
 power_off $(clusters2hosts ${clusters})
+exit 0

@@ -11,6 +11,8 @@ fi
 if is_function_absent 'tmux_cleanup'
 then
 	function tmux_cleanup {
+		#сброс к дефолтному цвету, вдруг надо
+		echo -ne '\0033[m'
 		# Закрывать сервер должен тот же процесс, что его и открыл
 		# Такое сочетание переменных обеспечивает такое условие
 		# В случае открытия первого сервере или вложенного, TMUX не будет
@@ -48,9 +50,6 @@ if is_function_absent 'tmux_attach'
 then
 	function tmux_attach {
 		tmux select-pane -t '{bottom-right}' ';' attach-session -t "=${tmux_session}"
-		#сброс к дефолтному цвету, вдруг надо
-		echo -ne '\0033[m'
-		tmux_cleanup
 	}
 	readonly -f tmux_attach
 fi

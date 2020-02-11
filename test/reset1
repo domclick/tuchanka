@@ -23,5 +23,3 @@ do
 	done
 	sleep 1
 done
-
-exit 0

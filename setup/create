@@ -8,6 +8,7 @@ readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 
 . "${lib_dir}/vm_ssh.bash"
 . "${lib_dir}/tmux.bash"
+. "${lib_dir}/cleanup.bash"
 
 # create_vms
 if $autoVirtualBox
@@ -109,6 +110,7 @@ then
 	export dvd_iso ssh_public_key vboxnet_if
 fi
 
+trap cleanup EXIT
 tmux_init
 declare -i n=${#vm_name[@]} i=0
 for h in "${!vm_name[@]}"
@@ -123,6 +125,6 @@ do
 done; unset h n i
 tmux select-layout tiled
 tmux_attach
-
-# Наличине скриншота create будет маркером, что распараллелеиная установка пакетов отработала нормально
+# Наличине скриншота create будет маркером, что распараллелеиная установка пакетов отработала нормально.
 exec "${setup_dir}/install"
+# cleanup by trap on error

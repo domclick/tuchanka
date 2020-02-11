@@ -8,15 +8,11 @@ readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 . "${root_dir}/load_config.bash"
 
 . "${lib_dir}/tmux.bash"
-. "${lib_dir}/power_off.bash"
+. "${lib_dir}/cleanup.bash"
 
+trap cleanup EXIT
 tmux_init
-
 tmux respawn-pane -k "${test_dir}/rollback1"
-
 tmux_attach
-
-# Finish, cleanup
-power_off
-
 exit 0
+# cleanup by trap

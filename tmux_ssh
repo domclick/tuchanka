@@ -19,6 +19,7 @@ readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/"
 readonly clusters="${*:-${!cluster_vms[*]}}"
 readonly hosts=$(clusters2hosts ${clusters})
 
+trap tmux_cleanup EXIT
 tmux_init
 
 declare -i n=$(count_words ${hosts}) i=0
@@ -35,3 +36,5 @@ done; unset h n i
 tmux select-layout tiled
 
 tmux_attach
+exit 0
+# tmux_cleanup by trap

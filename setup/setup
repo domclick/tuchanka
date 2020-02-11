@@ -8,12 +8,14 @@ readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 
 . "${lib_dir}/vm_ssh.bash"
 . "${lib_dir}/tmux.bash"
+. "${lib_dir}/cleanup.bash"
 if $autoVirtualBox
 then
 	. "${lib_dir}/delete_snapshot.bash"
 	. "${lib_dir}/rollback.bash"
 fi
 
+trap cleanup EXIT
 if $autoVirtualBox
 then
 	rollback 'install'
@@ -38,6 +40,6 @@ do
 	let i+=1
 done; unset c n i
 tmux_attach
-
-# Наличине скриншота setup будет маркером, что распараллелеиная настройка кластеров отработала нормально
+# Наличине скриншота setup будет маркером, что распараллелеиная настройка кластеров отработала нормально.
 exit 0
+# cleanup by trap
