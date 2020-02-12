@@ -28,13 +28,12 @@ then
 	if [ $h -eq $Witness ]
 	then
 		# vboxnet_if экспортирована в родительском скрипте
+		# На witness две виртуалки, одна для выхода в интернет для ntp и http proxy
 		VBoxManage modifyvm "${vm_name[$h]}" --description "${vm_desc[$h]}" --memory $RAM_MiB --vram=$VRAM_MiB --boot1 dvd --boot2 disk --boot3 none --boot4 none --rtcuseutc on --graphicscontroller vboxsvga --firmware bios --defaultfrontend headless --nic1 hostonly --nictype1 virtio --hostonlyadapter1 "${vboxnet_if}" --nic2 nat --nictype2 virtio --mouse ps2 --keyboard ps2 --audio none --cpus $CPUs --cpuexecutioncap $CPU_execution_cap --iconfile "${root_dir}/images/krogan.png"
-		# На witness proxy cache и (будет) S3 файловый сервер, поэтому размер в два раза больше
-		VBoxManage createmedium disk --filename "${vboxvm_vdi}" --size $(( $HDD_MiB*2 ))
 	else
 		VBoxManage modifyvm "${vm_name[$h]}" --description "${vm_desc[$h]}" --memory $RAM_MiB --vram=$VRAM_MiB --boot1 dvd --boot2 disk --boot3 none --boot4 none --rtcuseutc on --graphicscontroller vboxsvga --firmware bios --defaultfrontend headless --nic1 hostonly --nictype1 virtio --hostonlyadapter1 "${vboxnet_if}" --mouse ps2 --keyboard ps2 --audio none --cpus $CPUs --cpuexecutioncap $CPU_execution_cap --iconfile "${root_dir}/images/krogan.png"
-		VBoxManage createmedium disk --filename "${vboxvm_vdi}" --size $HDD_MiB
 	fi
+	VBoxManage createmedium disk --filename "${vboxvm_vdi}" --size $HDD_MiB
 	VBoxManage storagectl "${vm_name[$h]}" --name 'DiskController' --add sas --hostiocache off --bootable on
 	# кэширование образа dvd для ускорения установки
 	VBoxManage storagectl "${vm_name[$h]}" --name 'DVDController' --add sata --hostiocache on --bootable on
