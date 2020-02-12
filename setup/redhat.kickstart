@@ -53,7 +53,8 @@ zerombr
 clearpart --all --initlabel
 
 # Disk partitioning information
-part / --label system --fstype xfs --grow --asprimary
+part / --label system --fstype ext4 --grow --asprimary
+#part / --label system --fstype ext4 --fsoptions "data=writeback,dioread_nolock,discard,lazytime" --grow --asprimary
 
 # Reboot after installation
 # Note! Not sure exctly when the --eject option was added. Need to find out an make it optional.
