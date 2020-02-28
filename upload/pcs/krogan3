@@ -6,11 +6,16 @@ pcs cluster cib original_cib.xml
 cp original_cib.xml configured_cib.xml
 pcs -f configured_cib.xml resource create krogan3DB ocf:heartbeat:pgsqlms bindir=/usr/pgsql-11/bin pgdata=/var/lib/pgsql/krogan3 recovery_template=/var/lib/pgsql/krogan3.paf op monitor interval=15 timeout=10 monitor interval=16 role=Master timeout=20 monitor interval=17 role=Slave timeout=10 meta master notify=true resource-stickiness=10
 pcs -f configured_cib.xml resource create krogan3IP ocf:heartbeat:IPaddr2 nic=eth0 cidr_netmask=24 ip=192.168.89.35
-pcs -f configured_cib.xml resource create krogan3sIP ocf:heartbeat:IPaddr2 nic=eth0 cidr_netmask=24 ip=192.168.89.36 unique_clone_address=true clone interleave=true globally-unique=true resource-stickiness=0 clone-max=2
+pcs -f configured_cib.xml resource create krogan3s1IP ocf:heartbeat:IPaddr2 nic=eth0 cidr_netmask=24 ip=192.168.89.36
+pcs -f configured_cib.xml resource create krogan3s2IP ocf:heartbeat:IPaddr2 nic=eth0 cidr_netmask=24 ip=192.168.89.37
 pcs -f configured_cib.xml constraint colocation add krogan3IP with master krogan3DB-master INFINITY
 pcs -f configured_cib.xml constraint order promote krogan3DB-master then start krogan3IP symmetrical=false
 pcs -f configured_cib.xml constraint order demote krogan3DB-master then stop krogan3IP symmetrical=false kind=Optional
-pcs -f configured_cib.xml constraint location krogan3sIP-clone rule score=-INFINITY master-krogan3DB lt integer 0
-pcs -f configured_cib.xml constraint colocation add krogan3sIP-clone with slave krogan3DB-master INFINITY
-pcs -f configured_cib.xml constraint order start krogan3DB-master then start krogan3sIP-clone
+pcs -f configured_cib.xml constraint location krogan3s1IP rule score=-INFINITY master-krogan3DB lt integer 0
+pcs -f configured_cib.xml constraint location krogan3s2IP rule score=-INFINITY master-krogan3DB lt integer 0
+pcs -f configured_cib.xml constraint colocation add krogan3s1IP with slave krogan3DB-master INFINITY
+pcs -f configured_cib.xml constraint colocation add krogan3s2IP with slave krogan3DB-master INFINITY
+pcs -f configured_cib.xml constraint colocation add krogan3s1IP with krogan3s2IP -1000
+pcs -f configured_cib.xml constraint order start krogan3DB-master then start krogan3s1IP
+pcs -f configured_cib.xml constraint order start krogan3DB-master then start krogan3s2IP
 pcs cluster cib-push configured_cib.xml --wait diff-against=original_cib.xml
