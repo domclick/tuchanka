@@ -5,27 +5,31 @@ if is_function_absent 'wait_ready'
 then
 	function wait_ready {
 		local c=$1
-		local db master slaves slave date
-		for db in ${cluster_dbs[$c]}
+		local db master slaves slave date i
+		for ((i=0;i<5;i++)) # several times to sure that result is stable
 		do
-			master="${float_ip[$db]}:${db_port[$db]}"
-			# В случае ошибок - ожидание
-			until date="$(heartbeat_psql "${master}" 'wait_ready.bash' 'read-write' 'select heart()')"
+			for db in ${cluster_dbs[$c]}
 			do
-				sleep 5
-			done
-			# Убеждаемся, что БД работают, проверка репликации по любому рабу
-			slaves="$(slaves4URL $db)"
-			if [ -n "$slaves" ]
-			then
+				master="${float_ip[$db]}:${db_port[$db]}"
 				# В случае ошибок - ожидание
-				until test "$(heartbeat_psql "${slaves}" 'wait_ready.bash' 'any' "select beat()>='${date}'")" = 't'
+				until date="$(heartbeat_psql "${master}" 'wait_ready.bash' 'read-write' 'select heart()')"
 				do
-					# репликация может быть ассинхронной, поэтому обновление может прийти не сразу
-					sleep 5
+					sleep 1
 				done
-			fi
-		done;unset db
+				# Убеждаемся, что БД работают, проверка репликации по любому рабу
+				slaves="$(slaves4URL $db)"
+				if [ -n "$slaves" ]
+				then
+					# В случае ошибок - ожидание
+					until test "$(heartbeat_psql "${slaves}" 'wait_ready.bash' 'any' "select beat()>='${date}'")" = 't'
+					do
+						# репликация может быть ассинхронной, поэтому обновление может прийти не сразу
+						sleep 1
+					done
+				fi
+			done;unset db
+			sleep 1
+		done;unset i
 	}
 	readonly -f wait_ready
 fi

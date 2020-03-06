@@ -127,10 +127,10 @@ function test_node {
 	wait_ready $c
 	time=$(($(now)-$time))
 	tick "${break_node[$f]} reaction ${time}s"
+	# Обновляю pane
+	echo -ne '\033[H\033[J'|tmux display-message -t "${pane_reactions}" -I
 	local db=$(first_word ${cluster_dbs[$c]})
 	local master="${float_ip[$db]}:${db_port[$db]}"
-	# Очищаю pane
-	echo -ne '\033[H\033[J'|tmux display-message -t "${pane_reactions}" -I
 	# Вывожу таблицу с временем реагирования
 	psql --no-psqlrc --quiet --pset=footer=off \
 		--dbname="postgresql://heartbeat:ChangeMe@${master}/heartbeat?application_name=failure&target_session_attrs=read-write" \
