@@ -217,23 +217,25 @@ cluster_vms[$Group0]="$Witness"
 
 cluster_vms[$Cluster1]="$Tuchanka1a $Tuchanka1b"
 cluster_dbs[$Cluster1]="$Krogan1a $Krogan1b"
-cluster_hb1[$Cluster1]="${test_dir}/heart4tmux $Krogan1a"
-cluster_hb2[$Cluster1]="${test_dir}/heart4tmux $Krogan1b"
+# Этот параметр передается дальше в tmux, поэтому нужны дополнительные кавычки
+# чтобы избежать разрывов пути, если там содержатся пробелы.
+cluster_hb1[$Cluster1]="'${test_dir}/heart4tmux' $Krogan1a"
+cluster_hb2[$Cluster1]="'${test_dir}/heart4tmux' $Krogan1b"
 
 cluster_vms[$Cluster2]="$Tuchanka2a $Tuchanka2b"
 cluster_dbs[$Cluster2]="$Krogan2"
-cluster_hb1[$Cluster2]="${test_dir}/heart4tmux $Krogan2"
-cluster_hb2[$Cluster2]="${test_dir}/beat4tmux $Krogan2"
+cluster_hb1[$Cluster2]="'${test_dir}/heart4tmux' $Krogan2"
+cluster_hb2[$Cluster2]="'${test_dir}/beat4tmux' $Krogan2"
 
 cluster_vms[$Cluster3]="$Tuchanka3a $Tuchanka3b $Tuchanka3c"
 cluster_dbs[$Cluster3]="$Krogan3"
-cluster_hb1[$Cluster3]="${test_dir}/heart4tmux $Krogan3"
-cluster_hb2[$Cluster3]="${test_dir}/beat4tmux $Krogan3"
+cluster_hb1[$Cluster3]="'${test_dir}/heart4tmux' $Krogan3"
+cluster_hb2[$Cluster3]="'${test_dir}/beat4tmux' $Krogan3"
 
 cluster_vms[$Cluster4]="$Tuchanka4a $Tuchanka4b $Tuchanka4c $Tuchanka4d"
 cluster_dbs[$Cluster4]="$Krogan4"
-cluster_hb1[$Cluster4]="${test_dir}/heart4tmux $Krogan4"
-cluster_hb2[$Cluster4]="${test_dir}/beat4tmux $Krogan4"
+cluster_hb1[$Cluster4]="'${test_dir}/heart4tmux' $Krogan4"
+cluster_hb2[$Cluster4]="'${test_dir}/beat4tmux' $Krogan4"
 readonly -a cluster_vms cluster_dbs cluster_hb1 cluster_hb2
 
 # http proxy url

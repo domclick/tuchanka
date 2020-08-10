@@ -12,7 +12,7 @@ readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 
 trap cleanup EXIT
 tmux_init
-tmux respawn-pane -k "${test_dir}/rollback1"
+tmux respawn-pane -k "'${test_dir}/rollback1'"
 tmux_attach
 exit 0
 # cleanup by trap
