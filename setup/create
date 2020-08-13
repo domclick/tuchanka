@@ -95,6 +95,8 @@ Host${ssh_hosts}
 	StrictHostKeyChecking yes
 	User root
 	TCPKeepAlive yes
+	ServerAliveCountMax 3
+	ServerAliveInterval 5
 EOF
 unset ssh_hosts
 # generate etc_hosts file
