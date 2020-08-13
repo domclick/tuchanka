@@ -30,9 +30,28 @@ readonly root_dir="$(dirname "${BASH_SOURCE[0]}")"
 . "${root_dir}/load_config.bash"
 . "${lib_dir}/shut_down.bash"
 . "${lib_dir}/clusters2hosts.bash"
+. "${lib_dir}/is_vm_running.bash"
 
 # $@ номера кластеров, если пустой то все (включая Group0)
 readonly clusters="${*:-${!cluster_vms[*]}}"
 
-shut_down $(clusters2hosts ${clusters})
+# Список виртуалок, которые онлайн
+hosts=''
+for h in $(clusters2hosts ${clusters})
+do
+	is=$(is_vm_running $h)
+	if $is
+	then
+		hosts+=" ${h}"
+	fi
+done; unset h is
+# remove leading ' '
+hosts="${hosts#' '}"
+
+if [ -n "${hosts}" ]
+then
+	shut_down ${hosts}
+fi
+unset hosts
+
 exit 0

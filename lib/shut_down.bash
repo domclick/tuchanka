@@ -31,15 +31,10 @@ then
 		local h is
 		for h in $hosts
 		do
-			is=$(is_vm_running $h)
-			if $is
-			then
-				#VBoxManage controlvm "${vm_name[$h]}" acpipowerbutton
-				echo "ShutDown ${vm_name[$h]}"
-				# Выкинет с ненулевым кодом
-				vm_ssh $h "poweroff" || true
-				sleep 1 # обхожу баг с ошибочными мессаджами в GUI
-			fi
+			echo "ShutDown ${vm_name[$h]}"
+			# Выкинет с ненулевым кодом
+			vm_ssh $h "systemctl poweroff" || true
+			sleep 1 # обхожу баг с ошибочными мессаджами в GUI
 		done;unset h
 		for h in $hosts
 		do

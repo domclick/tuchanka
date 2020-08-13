@@ -305,7 +305,7 @@ test/failure 2 3
 - **PowerOff**: "обесточивает" виртуалку командой `VBoxManage controlvm "виртуалка" poweroff`.
 - **Reset**: перегружает виртуалку командой `VBoxManage controlvm "виртуалка" reset`.
 - **SBD-STOP**: подвешивает демон SBD командой `killall -STOP sbd`.
-- **ShutDown**: через ssh посылает на виртуалку команду `poweroff`, система корректно завершает работу.
+- **ShutDown**: через ssh посылает на виртуалку команду `systemctl poweroff`, система корректно завершает работу.
 - **UnLink**: сетевая изоляция, команда `VBoxManage controlvm "виртуалка" setlinkstate1 off`.
 
 Завершение тестирование либо с помощью стандартной командой tmux "kill-window" **Ctrl-b &**, либо командой "detach-client" **Ctrl-b d**: при этом тестирование завершается, tmux закрывается и выключаются виртуалки.
