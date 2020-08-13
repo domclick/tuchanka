@@ -24,7 +24,7 @@ readonly vboxnet_prefix='192.168.89'
 readonly vboxnet_hostip="${vboxnet_prefix}.254"
 readonly vm_domain='vault'
 # ОЗУ и диск, таймзона для виртуалок (в формате для unattended install)
-readonly CPUs=2 CPU_execution_cap=50 RAM_MiB=768 VRAM_MiB=10 HDD_MiB=5120 time_zone='Europe/Moscow'
+readonly CPUs=2 CPU_execution_cap=50 RAM_MiB=600 VRAM_MiB=10 HDD_MiB=3072 time_zone='Europe/Moscow'
 # really don't need to change in the test bed, password of hacluster unix user
 readonly hacluster_password='ChangeMe'
 # dirs
