@@ -78,7 +78,7 @@ do
 	echo -e "Host ${vm_name[$h]}\n\tHostName ${vm_ip[$h]}"
 	ssh_hosts+=" ${vm_name[$h]}"
 done >>"${ssh_config}";unset h
-cat <<-EOF >>"${ssh_config}"
+cat <<EOF >>"${ssh_config}"
 Host${ssh_hosts}
 	ForwardAgent yes
 	ForwardX11 no
