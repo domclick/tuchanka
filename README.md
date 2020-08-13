@@ -326,3 +326,26 @@ test/failure 2 3
 
 ## Известные недостатки
 На текущий момент *watchdog демон* *sbd* отрабатывает остановку наблюдаемых демонов, но не их зависание. И, как следствие, некорректно отрабатываются неисправности приводящие к зависанию только *Corosync* и *Pacemaker*, но при этом не подвешивающие *sbd*. Для проверки *Corosync* уже есть **PR#83** (в GitHub у *sbd*) принят в ветку master. Обещали (в PR#83), что и для Pacemaker будет что-то подобное, надеюсь, что к *RedHat 8* сделают. Но подобные "неисправности" умозрительные, легко имитируется искусственно с помощью, например `killall -STOP corosync`, но никогда не встречались естественно.
+
+# Лицензия
+Данный проект распространяется по лицензии MIT.
+
+> Copyright Ⓒ 2020 "Sberbank Real Estate Center" Limited Liability Company.
+>
+> Permission is hereby granted, free of charge, to any person obtaining
+> a copy of this software and associated documentation files (the "Software"),
+> to deal in the Software without restriction, including without limitation
+> the rights to use, copy, modify, merge, publish, distribute, sublicense,
+> and/or sell copies of the Software, and to permit persons to whom the Software
+> is furnished to do so, subject to the following conditions:
+>
+> The above copyright notice and this permission notice shall be included in all
+> copies or substantial portions of the Software.
+>
+> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+> EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+> OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+> IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+> DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+> ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+> DEALINGS IN THE SOFTWARE.
