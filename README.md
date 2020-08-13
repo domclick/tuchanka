@@ -1,4 +1,4 @@
-![Krogan on Tuchanka](images/krogan.png)
+![Krogan on Tuchanka](images/grunt.jpg)
 # ToDo
 Пока нет, но должно появится в следующих итерациях:
 - S3 архивирование (в том числе чтобы добирать недостающие страницы при репликации)
@@ -349,3 +349,6 @@ test/failure 2 3
 > DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 > ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 > DEALINGS IN THE SOFTWARE.
+
+Картинка крогана взята с [Deviant Art](http://fav.me/d8fo42n) c разрешения автора:
+![Разрешение Noosborn](images/noosborn.png)
