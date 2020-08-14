@@ -71,7 +71,7 @@ vm_ssh $h "yum --assumeyes install epel-release http://download.postgresql.org/p
 # переделываю на baseurl, чтобы нормально работало proxy
 # раскомментирую baseurl, https->http, комментирую mirrorlist и metalink
 vm_ssh $h "sed -e '/^#\\?baseurl=https\\?:/ s//baseurl=http:/' -e '/^\\(mirrorlist\\)\\|\\(metalink\\)=/ s//#&/' -i /etc/yum.repos.d/*.repo"
-vm_ssh $h 'yum --assumeyes erase chrony'
+vm_ssh $h 'yum --assumeyes erase chrony NetworkManager'
 vm_ssh $h 'yum --assumeyes install deltarpm'
 vm_ssh $h 'yum --assumeyes update'
 # awscli для тестирования s3 на witness
