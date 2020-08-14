@@ -24,16 +24,16 @@ CREATE DATABASE heartbeat;
 
 \c heartbeat
 BEGIN;
-CREATE TABLE heartbeat (beat time(1) NOT NULL);
-INSERT INTO heartbeat VALUES (LOCALTIME(1));
+CREATE TABLE heartbeat (beat timestamptz(1) NOT NULL);
+INSERT INTO heartbeat VALUES (CURRENT_TIMESTAMP(1));
 
-CREATE FUNCTION heart() RETURNS time LANGUAGE sql VOLATILE SECURITY DEFINER PARALLEL UNSAFE AS
+CREATE FUNCTION heart() RETURNS timestamptz LANGUAGE sql VOLATILE SECURITY DEFINER PARALLEL UNSAFE AS
 $heart$
-UPDATE heartbeat SET beat=LOCALTIME(1) RETURNING beat
+UPDATE heartbeat SET beat=CURRENT_TIMESTAMP(1) RETURNING beat
 $heart$;
 GRANT EXECUTE ON FUNCTION heart() TO heartbeat;
 
-CREATE FUNCTION beat() RETURNS time LANGUAGE SQL STABLE SECURITY DEFINER PARALLEL SAFE AS
+CREATE FUNCTION beat() RETURNS timestamptz LANGUAGE SQL STABLE SECURITY DEFINER PARALLEL SAFE AS
 $beat$
 SELECT beat FROM heartbeat
 $beat$;
@@ -43,7 +43,7 @@ CREATE PROCEDURE heart4tmux(IN _name text DEFAULT '') LANGUAGE plpgsql AS
 $heart4tmux$
 BEGIN
 	LOOP
-		RAISE INFO E'\r%\033[H\033[Kheart %:\r',(SELECT heart()),_name;
+		RAISE INFO E'\r%\033[H\033[Kheart %:\r',(SELECT heart()::time(1)),_name;
 		COMMIT;
 		PERFORM pg_sleep(0.1);
 		COMMIT;
@@ -56,7 +56,7 @@ CREATE PROCEDURE beat4tmux(IN _name text DEFAULT '') LANGUAGE plpgsql AS
 $beat4tmux$
 BEGIN
 	LOOP
-		RAISE INFO E'\r%\033[H\033[Kbeat %:\r',(SELECT beat()),_name;
+		RAISE INFO E'\r%\033[H\033[Kbeat %:\r',(SELECT beat()::time(1)),_name;
 		COMMIT;
 		PERFORM pg_sleep(0.1);
 		COMMIT;
