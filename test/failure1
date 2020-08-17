@@ -53,44 +53,37 @@ function Reset {
 	VBoxManage controlvm "${vm_name[$1]}" reset
 }
 readonly -f Reset
-break_node+=('Reset')
 # PowerOff node
 function PowerOff {
 	power_off $1
 }
 readonly -f PowerOff
-break_node+=('PowerOff')
 # ShutDown node
 function ShutDown {
 	shut_down $1
 }
 readonly -f ShutDown
-break_node+=('ShutDown')
 # Unlink node (net isolation)
 function UnLink {
 	VBoxManage controlvm "${vm_name[$1]}" setlinkstate1 off
 }
 readonly -f UnLink
-break_node+=('UnLink')
 # Postgres-KILL
 function Postgres-KILL {
 	vm_ssh $1 "killall -KILL postgres"
 }
 readonly -f Postgres-KILL
-break_node+=('Postgres-KILL')
 # Postgres-STOP
 function Postgres-STOP {
 	vm_ssh $1 "killall -STOP postgres"
 }
 readonly -f Postgres-STOP
-break_node+=('Postgres-STOP')
 # SBD-STOP (test watchdog)
 function SBD-STOP {
 	vm_ssh $1 "killall -STOP sbd"
 	sleep 5 # watchdog timer
 }
 readonly -f SBD-STOP
-break_node+=('SBD-STOP')
 # Fork Bomb (test "out of memory")
 function ForkBomb {
 	# После форк бомбы ssh дисконнектит с ненулевым кодом возврата, игнорю
@@ -98,13 +91,22 @@ function ForkBomb {
 	sleep 5
 }
 readonly -f ForkBomb
-break_node+=('ForkBomb')
 # Test out of disk space
 function OutOfSpace {
 	# Может завершать работу с ненулевым возвратом, игнорю
 	vm_ssh $1 "f=\"\$(mktemp)\";exec 3>\"\$f\";rm \"\$f\";cat /dev/zero >&3;sleep 10" || true
 }
 readonly -f OutOfSpace
+
+# здесь можно комментировать ненужные тесты
+break_node+=('Reset')
+break_node+=('PowerOff')
+break_node+=('ShutDown')
+break_node+=('UnLink')
+break_node+=('Postgres-KILL')
+break_node+=('Postgres-STOP')
+break_node+=('SBD-STOP')
+break_node+=('ForkBomb')
 break_node+=('OutOfSpace')
 readonly -a break_node
 
