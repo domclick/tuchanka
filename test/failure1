@@ -98,7 +98,7 @@ function OutOfSpace {
 }
 readonly -f OutOfSpace
 
-# здесь можно комментировать ненужные тесты
+# Here can be commented out unnessesary tests
 break_node+=('Reset')
 break_node+=('PowerOff')
 break_node+=('ShutDown')
@@ -132,6 +132,8 @@ function test_node {
 	local h unbroken time
 	# random node from the cluster
 	h=$(random_word ${cluster_vms[$c]})
+	# Can be used to test only the first node in the cluster
+	# h=$(first_word ${cluster_vms[$c]})
 	for unbroken in ${cluster_vms[$c]}
 	do
 		if [ $unbroken -ne $h ]
