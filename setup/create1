@@ -55,7 +55,12 @@ then
 	fi
 	VBoxManage setextradata "${vm_name[$h]}" 'GUI/ScaleFactor' 2
 	VBoxManage createmedium disk --filename "${vboxvm_vdi}" --size $HDD_MiB
-	VBoxManage storagectl "${vm_name[$h]}" --name 'DiskController' --add sas --hostiocache off --bootable on
+	# reasonable, but unstable
+	# VM finishes with error in log
+	# AIOMgr: Host limits number of active IO requests to 16. Expect a performance impact.
+	# VBoxManage storagectl "${vm_name[$h]}" --name 'DiskController' --add sas --hostiocache off --bootable on
+	# workaround
+	VBoxManage storagectl "${vm_name[$h]}" --name 'DiskController' --add sas --hostiocache on --bootable on
 	# кэширование образа dvd для ускорения установки
 	VBoxManage storagectl "${vm_name[$h]}" --name 'DVDController' --add sata --hostiocache on --bootable on
 	VBoxManage storageattach "${vm_name[$h]}" --storagectl 'DiskController' --type hdd --port 0 --device 0 --medium "${vboxvm_vdi}"
