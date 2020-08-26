@@ -95,9 +95,6 @@ unset ssh_key
 vm_ssh $h "echo '${vm_name[$h]}' >|/etc/hostname"
 # add etc_hosts to /etc/hosts
 vm_ssh $h 'cat >>/etc/hosts' <"${etc_hosts}"
-# kdump отключен в kickstart файле, выключаю сервис, чтобы systemctl is-system-runnig корректно работал
-# при следующей загрузке
-vm_ssh $h 'systemctl disable --now kdump.service --quiet'
 # Русская локаля с английским текстом
 vm_ssh $h 'localectl set-locale LANG=ru_RU.UTF-8 LC_MESSAGES=en_US.UTF-8 LANGUAGE=en'
 

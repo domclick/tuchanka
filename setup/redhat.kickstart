@@ -79,36 +79,15 @@ part / --label system --fstype ext4 --grow --asprimary
 # Reboot after installation
 # Note! Not sure exctly when the --eject option was added. Need to find out an make it optional.
 reboot --eject
-#poweroff --eject
 
-# Packages.  We currently ignore missing packages/groups here to keep things simpler.
-%packages --ignoremissing
-@base
-@core
-@@VBOX_COND_IS_NOT_MINIMAL_INSTALLATION@@
-@development
-@basic-desktop
-@desktop-debugging
-@desktop-platform
-@fonts
-@general-desktop
-@graphical-admin-tools
-@remote-desktop-clients
-@x11
-@@VBOX_COND_END@@
-
-# Prepare building the additions kernel module, try get what we can from the cdrom as it may be impossible
-# to install anything from the post script:
-kernel-headers
-kernel-devel
-glibc-devel
-glibc-headers
-gcc
-dkms
-make
-bzip2
-perl
-
+%packages
+-plymouth
+-chrony
+-kexec-tools
+-NetworkManager
+-NetworkManager-team
+-NetworkManager-tui
+-NetworkManager-wifi
 %end
 
 # Post install happens in a different script.
