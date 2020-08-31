@@ -31,17 +31,11 @@ readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 
 . "${lib_dir}/vm_ssh.bash"
 . "${lib_dir}/tmux.bash"
-if $autoVirtualBox
-then
-	. "${lib_dir}/power_on.bash"
-	. "${lib_dir}/snapshot.bash"
-	. "${lib_dir}/is_snapshot.bash"
-fi
+. "${lib_dir}/power_on.bash"
+. "${lib_dir}/snapshot.bash"
+. "${lib_dir}/is_snapshot.bash"
 
-if $autoVirtualBox
-then
-	power_on $h
-fi
+power_on $h
 
 echo "Install soft to ${vm_name[$h]}"
 if [ $h -eq $Witness ]
@@ -78,32 +72,27 @@ else
 	vm_ssh $h 'yum --assumeyes install resource-agents-paf corosync-qdevice sbd'
 fi
 
-if $autoVirtualBox
+if [ $h -eq $Witness ]
 then
-	if [ $h -eq $Witness ]
-	then
-		# Жду, пока все остальные, кроме witness, завершат инсталяцию,
-		# потому как http proxy на witness нужен для завершения инсталяции на остальных виртуалках.
-		# Проверяю, что инсталяция была успешно завершена по наличию снепшота install
-		for hh in ${!vm_name[@]}
+	# Жду, пока все остальные, кроме witness, завершат инсталяцию,
+	# потому как http proxy на witness нужен для завершения инсталяции на остальных виртуалках.
+	# Проверяю, что инсталяция была успешно завершена по наличию снепшота install
+	for hh in ${!vm_name[@]}
+	do
+		if [ $hh -eq $Witness ]
+		then
+			continue
+		fi
+		while true
 		do
-			if [ $hh -eq $Witness ]
-			then
-				continue
-			fi
-			while true
-			do
-				is=$(is_snapshot 'install' $hh)
-				$is && break
-				sleep 5
-			done
-		done;unset hh is
-	fi
-	# Наличине скриншота install будет маркером, что распараллелеиная установка пакетов отработала нормально
-	snapshot 'install' 'The snapshot was taken at the end of the "install" script.' $h
-else
-	echo 'При автоматической установке создается снепшот "install"'
+			is=$(is_snapshot 'install' $hh)
+			$is && break
+			sleep 5
+		done
+	done;unset hh is
 fi
+# Наличине скриншота install будет маркером, что распараллелеиная установка пакетов отработала нормально
+snapshot 'install' 'The snapshot was taken at the end of the "install" script.' $h
 
 tmux set-option -p -t "${TMUX_PANE}" remain-on-exit off
 exit 0

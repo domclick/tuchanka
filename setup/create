@@ -25,39 +25,36 @@ set -o errexit -o noclobber -o nounset -o pipefail -o xtrace
 # get config
 readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 . "${root_dir}/load_config.bash"
-
 . "${lib_dir}/vm_ssh.bash"
 . "${lib_dir}/tmux.bash"
 . "${lib_dir}/cleanup.bash"
 
 # create_vms
-if $autoVirtualBox
+
+# check command line arguments
+if [ $# -ne 2 ]
 then
-	# check command line arguments
-	if [ $# -ne 2 ]
-	then
-		echo -e "Usage:\n\t $0 <redhat_installation_image.iso> <ssh_public_key_file>" 1>&2
-		exit 1
-	fi
-	dvd_iso="$1"
-	echo "Check installation image \"${dvd_iso}\""
-	eval $(VBoxManage unattended detect --iso "${dvd_iso}" --machine-readable)
-	if [ "$OSTypeId" = 'RedHat_64' -a "$OSVersion" = '7' ]
-	then
-		echo "The installation image \"${dvd_iso}\" is Ok"
-	else
-		echo "Error: The installation image must be RedHat 7 64bit or so like (CentOS, for instance)" 1>&2
-		exit 2
-	fi
-	ssh_public_key="$2"
-	echo "Check ssh public key \"${ssh_public_key}\""
-	if [ -r "${ssh_public_key}" ]
-	then
-		ssh_fingerprint="$(ssh-keygen -l -f "${ssh_public_key}" | cut -d ' ' -f 2)"
-	else
-		echo "Error: The ssh public key file is not readable" 1>&2
-		exit 3
-	fi
+	echo -e "Usage:\n\t $0 <redhat_installation_image.iso> <ssh_public_key_file>" 1>&2
+	exit 1
+fi
+dvd_iso="$1"
+echo "Check installation image \"${dvd_iso}\""
+eval $(VBoxManage unattended detect --iso "${dvd_iso}" --machine-readable)
+if [ "$OSTypeId" = 'RedHat_64' -a "$OSVersion" = '7' ]
+then
+	echo "The installation image \"${dvd_iso}\" is Ok"
+else
+	echo "Error: The installation image must be RedHat 7 64bit or so like (CentOS, for instance)" 1>&2
+	exit 2
+fi
+ssh_public_key="$2"
+echo "Check ssh public key \"${ssh_public_key}\""
+if [ -r "${ssh_public_key}" ]
+then
+	ssh_fingerprint="$(ssh-keygen -l -f "${ssh_public_key}" | cut -d ' ' -f 2)"
+else
+	echo "Error: The ssh public key file is not readable" 1>&2
+	exit 3
 fi
 
 # generate config files for other scripts
@@ -110,27 +107,24 @@ do
 done >> "${etc_hosts}";unset db
 echo -e "${vboxnet_hostip}\tvirtualbox" >> "${etc_hosts}"
 
-if $autoVirtualBox
+# Подсетка кластера
+echo 'Create a network interface for the host'
+# get name for hostonlyif, if exists
+vboxnet_if="$(VBoxManage list hostonlyifs|
+	tr '\n' '§'|sed -nE "/^.*Name:[[:space:]]+([[:alnum:]]+)§GUID:[^§]+§DHCP:[^§]+§IPAddress:[[:space:]]+${vboxnet_hostip//./\.}§.*$/ s//\1/p")"
+if [ -z "${vboxnet_if}" ]
 then
-	# Подсетка кластера
-	echo 'Create a network interface for the host'
-	# get name for hostonlyif, if exists
-	vboxnet_if="$(VBoxManage list hostonlyifs|
-		tr '\n' '§'|sed -nE "/^.*Name:[[:space:]]+([[:alnum:]]+)§GUID:[^§]+§DHCP:[^§]+§IPAddress:[[:space:]]+${vboxnet_hostip//./\.}§.*$/ s//\1/p")"
-	if [ -z "${vboxnet_if}" ]
-	then
-		# Создаю интерфейс для hostonly сети и запоминаю имя:
-		vboxnet_if="$(VBoxManage hostonlyif create |
-			sed -E "s/Interface '(vboxnet[0-9]+)' was successfully created/\1/")"
-		# Назначаю IP хосту
-		VBoxManage hostonlyif ipconfig "${vboxnet_if}" --ip "${vboxnet_hostip}"
-		echo "created vboxnet_if=>${vboxnet_if}"
-	else
-		echo "vboxnet_if=>${vboxnet_if} already exists" 1>&2
-	fi
-	# будет использоваться при распараллеленной инсталяции
-	export dvd_iso ssh_public_key vboxnet_if
+	# Создаю интерфейс для hostonly сети и запоминаю имя:
+	vboxnet_if="$(VBoxManage hostonlyif create |
+		sed -E "s/Interface '(vboxnet[0-9]+)' was successfully created/\1/")"
+	# Назначаю IP хосту
+	VBoxManage hostonlyif ipconfig "${vboxnet_if}" --ip "${vboxnet_hostip}"
+	echo "created vboxnet_if=>${vboxnet_if}"
+else
+	echo "vboxnet_if=>${vboxnet_if} already exists" 1>&2
 fi
+# будет использоваться при распараллеленной инсталяции
+export dvd_iso ssh_public_key vboxnet_if
 
 trap cleanup EXIT
 tmux_init

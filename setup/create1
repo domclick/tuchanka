@@ -33,48 +33,35 @@ readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 . "${lib_dir}/snapshot.bash"
 . "${lib_dir}/is_snapshot.bash"
 . "${lib_dir}/tmux.bash"
-if $autoVirtualBox
-then
-	. "${lib_dir}/vboxvm_dir.bash"
-fi
+. "${lib_dir}/vboxvm_dir.bash"
 
-if $autoVirtualBox
+# Виртуалки
+echo "Create ${vm_name[$h]}"
+VBoxManage createvm --name "${vm_name[$h]}" --groups "/Tuchanka/Tuchanka${vm_group[$h]}" --ostype RedHat_64 --register
+# get host dir
+vboxvm_vdi="$(vboxvm_dir $h)/${vm_name[$h]}.vdi"
+if [ $h -eq $Witness ]
 then
-	# Виртуалки
-	echo "Create ${vm_name[$h]}"
-	VBoxManage createvm --name "${vm_name[$h]}" --groups "/Tuchanka/Tuchanka${vm_group[$h]}" --ostype RedHat_64 --register
-	# get host dir
-	vboxvm_vdi="$(vboxvm_dir $h)/${vm_name[$h]}.vdi"
-	if [ $h -eq $Witness ]
-	then
-		# vboxnet_if экспортирована в родительском скрипте
-		# На witness две виртуалки, одна для выхода в интернет для ntp и http proxy
-		VBoxManage modifyvm "${vm_name[$h]}" --description "${vm_desc[$h]}" --memory $RAM_MiB --vram=$VRAM_MiB --boot1 dvd --boot2 disk --boot3 none --boot4 none --rtcuseutc on --graphicscontroller vmsvga --firmware bios --defaultfrontend headless --nic1 hostonly --nictype1 virtio --hostonlyadapter1 "${vboxnet_if}" --nic2 nat --nictype2 virtio --mouse ps2 --keyboard ps2 --audio none --cpus $CPUs --cpuexecutioncap $CPU_execution_cap --iconfile "${root_dir}/images/krogan.png"
-	else
-		VBoxManage modifyvm "${vm_name[$h]}" --description "${vm_desc[$h]}" --memory $RAM_MiB --vram=$VRAM_MiB --boot1 dvd --boot2 disk --boot3 none --boot4 none --rtcuseutc on --graphicscontroller vmsvga --firmware bios --defaultfrontend headless --nic1 hostonly --nictype1 virtio --hostonlyadapter1 "${vboxnet_if}" --mouse ps2 --keyboard ps2 --audio none --cpus $CPUs --cpuexecutioncap $CPU_execution_cap --iconfile "${root_dir}/images/krogan.png"
-	fi
-	VBoxManage setextradata "${vm_name[$h]}" 'GUI/ScaleFactor' 2
-	VBoxManage createmedium disk --filename "${vboxvm_vdi}" --size $HDD_MiB
-	# reasonable, but unstable
-	# VM finishes with error in log
-	# AIOMgr: Host limits number of active IO requests to 16. Expect a performance impact.
-	# VBoxManage storagectl "${vm_name[$h]}" --name 'DiskController' --add sas --hostiocache off --bootable on
-	# workaround
-	VBoxManage storagectl "${vm_name[$h]}" --name 'DiskController' --add sas --hostiocache on --bootable on
-	# кэширование образа dvd для ускорения установки
-	VBoxManage storagectl "${vm_name[$h]}" --name 'DVDController' --add sata --hostiocache on --bootable on
-	VBoxManage storageattach "${vm_name[$h]}" --storagectl 'DiskController' --type hdd --port 0 --device 0 --medium "${vboxvm_vdi}"
-	VBoxManage storageattach "${vm_name[$h]}" --storagectl 'DVDController' --type dvddrive --port 0 --device 0 --medium "${dvd_iso}"
-	VBoxManage unattended install "${vm_name[$h]}" --iso="${dvd_iso}" --full-user-name="${vm_ip[$h]}" --locale='ru_RU' --time-zone="${time_zone}" --hostname="${vm_name[$h]}.${vm_domain}" --package-selection-adjustment='minimal' --script-template="${setup_dir}/redhat.kickstart" --post-install-command="mkdir -m 700 \"\${MY_TARGET}/root/.ssh\" && echo '$(cat "${ssh_public_key}")' >>\"\${MY_TARGET}/root/.ssh/authorized_keys\"" --start-vm='headless' --extra-install-kernel-parameters='net.ifnames=0 biosdevname=0 ks=cdrom:/ks.cfg'
-	echo "Created ${vm_name[$h]}"
+	# vboxnet_if экспортирована в родительском скрипте
+	# На witness две виртуалки, одна для выхода в интернет для ntp и http proxy
+	VBoxManage modifyvm "${vm_name[$h]}" --description "${vm_desc[$h]}" --memory $RAM_MiB --vram=$VRAM_MiB --boot1 dvd --boot2 disk --boot3 none --boot4 none --rtcuseutc on --graphicscontroller vmsvga --firmware bios --defaultfrontend headless --nic1 hostonly --nictype1 virtio --hostonlyadapter1 "${vboxnet_if}" --nic2 nat --nictype2 virtio --mouse ps2 --keyboard ps2 --audio none --cpus $CPUs --cpuexecutioncap $CPU_execution_cap --iconfile "${root_dir}/images/krogan.png"
 else
-	echo 'При автоматической установке:'
-	echo 'Создаются виртуалки, на них устанавливается CentOS с предварительной настройкой в инсталляторе.'
-	echo 'И публичный ключ сисадмина записывается пользователю root.'
-	echo 'А сейчас ручной режим и поэтому все эти действия необходимо выполнить вручную.'
-	echo 'Дальнейшее выполнение скрипта ожидает, что на серверах кластера уже запущен ssh.'
-	read -p 'when ready press Enter'
+	VBoxManage modifyvm "${vm_name[$h]}" --description "${vm_desc[$h]}" --memory $RAM_MiB --vram=$VRAM_MiB --boot1 dvd --boot2 disk --boot3 none --boot4 none --rtcuseutc on --graphicscontroller vmsvga --firmware bios --defaultfrontend headless --nic1 hostonly --nictype1 virtio --hostonlyadapter1 "${vboxnet_if}" --mouse ps2 --keyboard ps2 --audio none --cpus $CPUs --cpuexecutioncap $CPU_execution_cap --iconfile "${root_dir}/images/krogan.png"
 fi
+VBoxManage setextradata "${vm_name[$h]}" 'GUI/ScaleFactor' 2
+VBoxManage createmedium disk --filename "${vboxvm_vdi}" --size $HDD_MiB
+# reasonable, but unstable
+# VM finishes with error in log
+# AIOMgr: Host limits number of active IO requests to 16. Expect a performance impact.
+# VBoxManage storagectl "${vm_name[$h]}" --name 'DiskController' --add sas --hostiocache off --bootable on
+# workaround
+VBoxManage storagectl "${vm_name[$h]}" --name 'DiskController' --add sas --hostiocache on --bootable on
+# кэширование образа dvd для ускорения установки
+VBoxManage storagectl "${vm_name[$h]}" --name 'DVDController' --add sata --hostiocache on --bootable on
+VBoxManage storageattach "${vm_name[$h]}" --storagectl 'DiskController' --type hdd --port 0 --device 0 --medium "${vboxvm_vdi}"
+VBoxManage storageattach "${vm_name[$h]}" --storagectl 'DVDController' --type dvddrive --port 0 --device 0 --medium "${dvd_iso}"
+VBoxManage unattended install "${vm_name[$h]}" --iso="${dvd_iso}" --full-user-name="${vm_ip[$h]}" --locale='ru_RU' --time-zone="${time_zone}" --hostname="${vm_name[$h]}.${vm_domain}" --package-selection-adjustment='minimal' --script-template="${setup_dir}/redhat.kickstart" --post-install-command="mkdir -m 700 \"\${MY_TARGET}/root/.ssh\" && echo '$(cat "${ssh_public_key}")' >>\"\${MY_TARGET}/root/.ssh/authorized_keys\"" --start-vm='headless' --extra-install-kernel-parameters='net.ifnames=0 biosdevname=0 ks=cdrom:/ks.cfg'
+echo "Created ${vm_name[$h]}"
 
 # Жду завершение установки, записываю публичный ключ хоста
 echo "Waiting for ssh on ${vm_name[$h]}"
@@ -98,13 +85,8 @@ vm_ssh $h 'cat >>/etc/hosts' <"${etc_hosts}"
 # Русская локаля с английским текстом
 vm_ssh $h 'localectl set-locale LANG=ru_RU.UTF-8 LC_MESSAGES=en_US.UTF-8 LANGUAGE=en'
 
-if $autoVirtualBox
-then
-	# Наличине скриншота create будет маркером, что распараллелеиное создание виртуалок отработало нормально
-	snapshot 'create' 'The snapshot was taken at the end of the "create" script.' $h
-else
-	echo 'При автоматической установке создается снепшот "create"'
-fi
+# Наличине скриншота create будет маркером, что распараллелеиное создание виртуалок отработало нормально
+snapshot 'create' 'The snapshot was taken at the end of the "create" script.' $h
 
 tmux set-option -p -t "${TMUX_PANE}" remain-on-exit off
 exit 0

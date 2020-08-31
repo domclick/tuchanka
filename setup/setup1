@@ -36,18 +36,11 @@ readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 . "${lib_dir}/count_words.bash"
 . "${lib_dir}/is_grep.bash"
 . "${lib_dir}/tmux.bash"
+. "${lib_dir}/power_on.bash"
+. "${lib_dir}/snapshot.bash"
+. "${lib_dir}/is_snapshot.bash"
 
-if $autoVirtualBox
-then
-	. "${lib_dir}/power_on.bash"
-	. "${lib_dir}/snapshot.bash"
-	. "${lib_dir}/is_snapshot.bash"
-fi
-
-if $autoVirtualBox
-then
-	power_on ${cluster_vms[$c]}
-fi
+power_on ${cluster_vms[$c]}
 # common things for all VM
 # Раскладывание общих файлов по всем VM
 for h in ${cluster_vms[$c]}
@@ -283,33 +276,28 @@ else
 	sleep 5
 fi
 
-if $autoVirtualBox
+if [ $c -eq $Group0 ]
 then
-	if [ $c -eq $Group0 ]
-	then
-		# Жду, пока все остальные, кроме witness, завершат настройку,
-		# потому как witness нужен для успешной настройки кластеров.
-		# В реальности проверка на номер кластера, так как потоки распараллеливаются по кластерам.
-		# Проверяю, что инсталяция была успешно завершена по наличию снепшота setup
-		for h in ${!vm_name[@]}
+	# Жду, пока все остальные, кроме witness, завершат настройку,
+	# потому как witness нужен для успешной настройки кластеров.
+	# В реальности проверка на номер кластера, так как потоки распараллеливаются по кластерам.
+	# Проверяю, что инсталяция была успешно завершена по наличию снепшота setup
+	for h in ${!vm_name[@]}
+	do
+		if [ ${vm_group[$h]} -eq $Group0 ]
+		then
+			continue
+		fi
+		while true
 		do
-			if [ ${vm_group[$h]} -eq $Group0 ]
-			then
-				continue
-			fi
-			while true
-			do
-				is=$(is_snapshot 'setup' $h)
-				$is && break
-				sleep 5
-			done
-		done;unset h is
-	fi
-	# Наличине скриншота install будет маркером, что распараллелеиная установка пакетов отработала нормально
-	snapshot 'setup' 'The snapshot was taken at the end of the "setup" script.' ${cluster_vms[$c]}
-else
-	echo 'При автоматической установке создается снепшот "setup".'
+			is=$(is_snapshot 'setup' $h)
+			$is && break
+			sleep 5
+		done
+	done;unset h is
 fi
+# Наличине скриншота install будет маркером, что распараллелеиная установка пакетов отработала нормально
+snapshot 'setup' 'The snapshot was taken at the end of the "setup" script.' ${cluster_vms[$c]}
 
 tmux set-option -p -t "${TMUX_PANE}" remain-on-exit off
 exit 0

@@ -29,22 +29,13 @@ readonly root_dir="$(dirname "${BASH_SOURCE[0]}")/.."
 . "${lib_dir}/vm_ssh.bash"
 . "${lib_dir}/tmux.bash"
 . "${lib_dir}/cleanup.bash"
-if $autoVirtualBox
-then
-	. "${lib_dir}/delete_snapshot.bash"
-	. "${lib_dir}/rollback.bash"
-fi
+. "${lib_dir}/delete_snapshot.bash"
+. "${lib_dir}/rollback.bash"
 
 trap cleanup EXIT
-if $autoVirtualBox
-then
-	rollback 'create'
-	# Наличине скриншота setup будет маркером, что install1 скрипт отработал нормально.
-	delete_snapshot 'install'
-else
-	echo 'При автоматической установке здесь происходит откат к snapshot, который был создан после создания виртуалок.'
-	read -p 'press enter'
-fi
+rollback 'create'
+# Наличине скриншота setup будет маркером, что install1 скрипт отработал нормально.
+delete_snapshot 'install'
 
 tmux_init
 declare -i n=${#vm_name[@]} i=0
