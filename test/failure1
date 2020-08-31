@@ -93,8 +93,14 @@ function ForkBomb {
 readonly -f ForkBomb
 # Test out of disk space
 function OutOfSpace {
+	local h=$1
+	local c=${vm_group[$h]}
+	local db=$(first_word ${cluster_dbs[$c]})
+	local master="${float_ip[$db]}:${db_port[$db]}"
 	# Может завершать работу с ненулевым возвратом, игнорю
-	vm_ssh $1 "f=\"\$(mktemp)\";exec 3>\"\$f\";rm \"\$f\";cat /dev/zero >&3;sleep 10" || true
+	vm_ssh $1 "f=\"\$(mktemp)\";exec 3>\"\$f\";rm \"\$f\"; cat /dev/zero >&3;
+	psql --no-psqlrc --quiet --dbname='postgresql://heartbeat:ChangeMe@${master}/heartbeat?application_name=failure&target_session_attrs=read-write'\
+	--command='CREATE TEMPORARY TABLE blob ON COMMIT DROP AS SELECT generate_series(1,1000000);';" || true
 }
 readonly -f OutOfSpace
 
