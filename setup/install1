@@ -48,7 +48,7 @@ then
 fi
 # отключаю fastestmirror.conf, чтобы не мешал proxy
 vm_ssh $h "sed -e '/^enabled=1\$/ s//enabled=0/' -i /etc/yum/pluginconf.d/fastestmirror.conf"
-vm_ssh $h "sed -e '/^# PUT YOUR REPOS HERE/ i proxy=${proxy_url}\n' -i /etc/yum.conf"
+vm_ssh $h "sed -e '/^# PUT YOUR REPOS HERE/ i proxy=${proxy_url}\nmax_connections=1\nretries=0\n' -i /etc/yum.conf"
 echo 'wait proxy'
 # Когда proxy заработает, то curl на такой запрос вернет 22, так как доступ к localhost через прокси запрещен в конфиге squid
 # запрос идет через виртуалку, так как в хосте может быть не определено в /etc/hosts имя указанное в ${proxy_url}
