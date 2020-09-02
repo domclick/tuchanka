@@ -34,7 +34,7 @@ db=$1
 
 while true;
 do
-	heartbeat_psql "$(slaves4URL $db)" 'beat4tmux' 'any' "call beat4tmux('${db_suffix[$db]}')" \
+	heartbeat_psql "$(slaves4URL $db)" 'beat4tmux' 'any' "call beat4tmux('${db_suffix[$db]}','$(date +%Z)')" \
 		|| true
 	sleep 1
 done

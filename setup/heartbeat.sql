@@ -39,31 +39,31 @@ SELECT beat FROM heartbeat
 $beat$;
 GRANT EXECUTE ON FUNCTION beat() TO heartbeat;
 
-CREATE PROCEDURE heart4tmux(IN _name text DEFAULT '') LANGUAGE plpgsql AS
+CREATE PROCEDURE heart4tmux(IN _name text DEFAULT '', IN _timezone text DEFAULT 'GMT') LANGUAGE plpgsql AS
 $heart4tmux$
 BEGIN
 	LOOP
-		RAISE INFO E'\r%\033[H\033[Kheart %:\r',(SELECT heart()::time(1)),_name;
+		RAISE INFO E'\r%\033[H\033[Kheart %:\r',(SELECT CAST(heart() AT TIME ZONE _timezone AS time(1))),_name;
 		COMMIT;
 		PERFORM pg_sleep(0.1);
 		COMMIT;
 	END LOOP;
 END
 $heart4tmux$;
-GRANT EXECUTE ON PROCEDURE heart4tmux(text) TO heartbeat;
+GRANT EXECUTE ON PROCEDURE heart4tmux(text,text) TO heartbeat;
 
-CREATE PROCEDURE beat4tmux(IN _name text DEFAULT '') LANGUAGE plpgsql AS
+CREATE PROCEDURE beat4tmux(IN _name text DEFAULT '', IN _timezone text DEFAULT 'GMT') LANGUAGE plpgsql AS
 $beat4tmux$
 BEGIN
 	LOOP
-		RAISE INFO E'\r%\033[H\033[Kbeat %:\r',(SELECT beat()::time(1)),_name;
+		RAISE INFO E'\r%\033[H\033[Kbeat %:\r',(SELECT CAST(beat() AT TIME ZONE _timezone AS time(1))),_name;
 		COMMIT;
 		PERFORM pg_sleep(0.1);
 		COMMIT;
 	END LOOP;
 END
 $beat4tmux$;
-GRANT EXECUTE ON PROCEDURE beat4tmux(text) TO heartbeat;
+GRANT EXECUTE ON PROCEDURE beat4tmux(text,text) TO heartbeat;
 
 CREATE TABLE reactions (
 	failure text NOT NULL,

@@ -34,7 +34,7 @@ db=$1
 
 while true;
 do
-	heartbeat_psql "${float_ip[$db]}:${db_port[$db]}" 'heart4tmux' 'read-write' "call heart4tmux('${db_suffix[$db]}')" \
+	heartbeat_psql "${float_ip[$db]}:${db_port[$db]}" 'heart4tmux' 'read-write' "call heart4tmux('${db_suffix[$db]}','$(date +%Z)')" \
 		|| true
 	sleep 1
 done
