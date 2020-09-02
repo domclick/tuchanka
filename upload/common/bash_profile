@@ -22,7 +22,7 @@ set -a
 PAGER=/usr/bin/less
 LESS='--hilite-search --ignore-case --line-numbers --RAW-CONTROL-CHARS --quit-if-one-screen --no-init'
 EDITOR=/usr/bin/vim
-PGSETUP_INITDB_OPTIONS='--locale=ru_RU.UTF-8 --lc-messages=en_US.UTF-8 --auth-local=peer --auth-host=scram-sha-256'
+PGSETUP_INITDB_OPTIONS='--locale=en_US.UTF-8 --lc-messages=en_US.UTF-8 --auth-local=peer --auth-host=scram-sha-256'
 PGUSER='postgres'
 PGDATABASE='postgres'
 set +a

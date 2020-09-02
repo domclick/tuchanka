@@ -194,7 +194,7 @@ else
 		pacemaker_script="${config_name}"
 		restore_sh="restore${db_suffix[$db]}"
 		echo "Configure ${config_name}"
-		vm_ssh $m "su --login postgres -c \"pg_ctl init --wait --pgdata='${pgdata}' --options='--locale=ru_RU.UTF-8 --lc-messages=en_US.UTF-8 --auth-local=peer --auth-host=scram-sha-256 --data-checksums'\""
+		vm_ssh $m "su --login postgres -c \"pg_ctl init --wait --pgdata='${pgdata}' --options='--locale=en_US.UTF-8 --lc-messages=en_US.UTF-8 --auth-local=peer --auth-host=scram-sha-256 --data-checksums'\""
 		# pg_ident.conf pg_hba.conf postgresql.conf common for all databases
 		vm_ssh $m "cp -a '${pgdata}/postgresql.conf' '${pgdata}/postgresql.conf.original'"
 		vm_ssh $m "echo -e \"include='postgresql.conf.original'\ninclude_if_exists='../postgresql.conf'\ninclude_if_exists='../${custom_conf}'\" >|'${pgdata}/postgresql.conf'"
