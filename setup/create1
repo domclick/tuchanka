@@ -60,6 +60,7 @@ VBoxManage storagectl "${vm_name[$h]}" --name 'DiskController' --add sas --hosti
 VBoxManage storagectl "${vm_name[$h]}" --name 'DVDController' --add sata --hostiocache on --bootable on
 VBoxManage storageattach "${vm_name[$h]}" --storagectl 'DiskController' --type hdd --port 0 --device 0 --medium "${vboxvm_vdi}"
 VBoxManage storageattach "${vm_name[$h]}" --storagectl 'DVDController' --type dvddrive --port 0 --device 0 --medium "${dvd_iso}"
+# hack, I'll send IP instead of the full user name
 VBoxManage unattended install "${vm_name[$h]}" --iso="${dvd_iso}" --full-user-name="${vm_ip[$h]}" --locale='en_US' --time-zone="${time_zone}" --hostname="${vm_name[$h]}.${vm_domain}" --package-selection-adjustment='minimal' --script-template="${setup_dir}/redhat.kickstart" --post-install-command="mkdir -m 700 \"\${MY_TARGET}/root/.ssh\" && echo '$(cat "${ssh_public_key}")' >>\"\${MY_TARGET}/root/.ssh/authorized_keys\"" --start-vm='headless' --extra-install-kernel-parameters='net.ifnames=0 biosdevname=0 ks=cdrom:/ks.cfg'
 echo "Created ${vm_name[$h]}"
 
