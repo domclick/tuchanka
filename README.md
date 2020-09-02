@@ -1,203 +1,210 @@
-# Введение
-Некоторое время назад передо мной поставили задачу разработать отказоустойчивый кластер для [PostgreSQL](https://www.postgresql.org), работающий в нескольких дата-центрах, объединенных оптоволокном в рамках одного города, и способный выдержать отказ (например, обесточивание) одного дата-центра. В качестве софта, который отвечает за отказоустойчивость, выбрал [Pacemaker](https://clusterlabs.org), потому что это официальное решение от RedHat для создания отказоустойчивых кластеров. Оно хорошо тем, что RedHat обеспечивает его поддержку, и тем, что это решение универсальное (модульное). С его помощью можно будет обеспечить отказоустойчивость не только PostgreSQL, но и других сервисов, либо используя стандартные модули, либо создавая их под конкретные нужды.
+# Introduction
+Some time ago I got a task to develop a high available [PostgreSQL](https://www.postgresql.org) cluster. It must works on several data centres inside one city united by optical fiber. And it must survive a failure (for instance power off) one of the data centres. [Pacemaker](https://clusterlabs.org) was chosen as high availability software, because it is an official solution from RedHat for high available clusters and so it is supported by RedHat. Also it is good because this is a universal modular solution and can be used not only for PostgreSQL, but for other services too, by using its standard modules or a specific module can be created for specific needs.
 
-К этому решению возник резонный вопрос: насколько отказоустойчивым будет отказоустойчивый кластер? Чтобы это исследовать, я разработал тестовый стенд, который имитирует различные отказы на узлах кластера, ожидает восстановления работоспособности, восстанавливает отказавший узел и продолжает тестирование в цикле. Изначально этот проект назывался hapgsql, но со временем мне наскучило название, в котором только одна гласная. Поэтому отказоустойчивые базы данных (и float IP, на них указывающие) я стал именовать **krogan** (персонаж из компьютерной игры, у которого все важные органы дублированы), а узлы, кластеры и сам проект — **tuchanka** (планета, где живут кроганы).
+
+There is a question: how highly available will be such high available cluster? To research this was developed a test bed, which imitates failures of a cluster node, waits for recovery, fixes failed node and cyclically continue testing. At first time this project was called "HAPgSQL". But with time I was bored with name where only one vowel. So I named high available databases (and float IPs pointing to them) of this project as **krogan** (this is fantastic creatures with duplicated organs). And nodes, clusters and project itself I named as **tuchanka** (this is a planet of krogans).
 ![Krogan on Tuchanka](images/grunt.jpg)
 
-Кластеры разворачиваются на виртуалках [VirtualBox](https://www.virtualbox.org). Всего будет развернуто 12 виртуалок (суммарно 36GiB), которые образуют 4 отказоустойчивых кластера (разные варианты). Первые два кластера состоят из двух серверов PostgreSQL, которые размещены в разных дата-центрах, и общего сервера *witness* c **quorum device** (размещенный на дешёвой виртуалке в третьем дата-центре), который разрешает неопределенность **50%/50%**, отдавая свой голос одной из сторон. Третий кластер в трех дата-центрах: один мастер, два раба, без  **quorum device**. Четвертый кластер состоит из четырех серверов PostgreSQL, по два на дата-центр: один мастер, остальные реплики, и тоже использует *witness* c **quorum device**. Четвертый выдерживает отказ двух серверов или одного дата-центра. Это решение может быть, при необходимости, масштабировано на большее количество реплик.
+The test bed is deployed on virtual machines (VMs) of [VirtualBox](https://www.virtualbox.org). Totally there will be 12 VMs which will occupy 36GiB of hard disk. They will form 4 high available clusters (different variants). First two clusters consisted of two nodes will be placed on two different data centres and a common server *witness* with **quorum device** will be placed on very cheap VM in the third data center. *Witness* will solve uncertainty **50%/50%** by giving its voice to one of the side. The third cluster will occupy three data centres: one for a master and two for slaves. It will not use the **quorum device**. Fourth cluster will consists of four nodes, two nodes will be per data centre: one will be a master and three other will be slaves. It will also use the *witness* with the **quorum device**. The fourth cluster will survive failing of two nodes or one data centre. The fourth cluster can be scaled for more number of nodes if this will be needed.
 
-Сервис точного времени [ntpd](https://www.ntp.org) тоже перенастроен для отказоустойчивости, но там используются метод самого `ntpd` (*orphan mode*). Общий сервер *witness* выполняет роль центрального NTP-сервера, раздавая своё время всем кластерам, тем самым синхронизируя все серверы между собой. Если *witness* выйдет из строя или окажется изолированным, тогда своё время начнет раздавать один из серверов кластера (внутри кластера). Вспомогательный кэширующий **HTTP proxy** тоже поднят на *witness*, с его помощью остальные виртуалки имеют доступ к Yum-репозиториям. В реальности такие сервисы, как точное время и прокси, наверняка будут размещены на выделенных серверах, а в стенде они размещены на *witness* только для экономии количества виртуалок и места.
+Network Time Protocol daemon [ntpd](https://www.ntp.org) also reconfigured for high availability. There is used a method of `ntp` itself (*orphan mode*). The common server *witness* is a central NTP-server. It is share its precise time to the clusters and synchronise all nodes with each other. If *witness* will be failed or will be isolated, then one node in the each cluster will begin share its time inside the cluster. Also an auxiliary cache **HTTP proxy** is risen on the *witness*. With the aid of the *HTTP proxy* other VMs have access to the Yum-repositories. In the real life such services as NTP or HTTP proxy probably will be placed on a dedicated servers, but in this test bed the auxiliary services are placed on the one server *witness* to save space and to reduce number of VMs.
 
-# Версии
-0. Работает с CentOS 7 и PostgreSQL 11 на VirtualBox 6.1.
+This test bed can be used to test high available features of the clusters based on PostgreSQL and Pacemaker. A list of discovered bugs you will see below. And it can be used for presentations, all is run on a single MacBook Pro. I think this is much better instead of showing screenshots or video to show how the high available clusters survive different faults in the real time.
 
-# Структура кластеров
-Все кластеры предназначены для размещения в нескольких дата-центрах, объединены в одну плоскую сеть и должны выдерживать отказ или сетевую изоляцию одного дата-центра. Поэтому **невозможно** использовать для защиты от **split-brain** стандартную технологию Pacemaker, которая называется *STONITH* (Shoot The Other Node In The Head) или *fencing*. Её суть: если узлы в кластере начинают подозревать, что с каким-то узлом происходит неладное, он не отвечает или некорректно себя ведёт, то они принудительно его отключают через «внешние» устройства, например, управляющую карточку IPMI или UPS. Но такое сработает только в случаях, когда при единичном отказе сервера IPMI или UPS продолжают работать. Здесь же планируется защита от гораздо более катастрофичного отказа, когда отказывает весь дата-центр. А при таком отказе все *stonith*-устройства (IPMI, UPS и т.д.) тоже не будут работать.
+# Versions
+0. Works with CentOS 7 and PostgreSQL 11 on VirtualBox 6.1.
 
-Вместо этого в основе системы лежит идея кворума. Все узлы имеют голос, и работать могут только те, которые видят больше половины всех узлов. Это количество «половина+1» называется **кворум**. Если кворум не набирается, то узел решает, что он находится в сетевой изоляции и должен отключить свои ресурсы, т.е. это такая **защита от split-brain**. Если софт, который отвечает за такое поведение, не работает, то должен будет сработать watchdog, например, на базе IPMI.
+# Structure of the clusters
+There is a standard technology of Pacemaker to protect from the **split-brain**. It is named *STONITH* (Shoot The Other Node In The Head) or *fencing*. The purpose of *STONITH* is simple: when nodes of the cluster begin suspect that there is something wrong with one of the node (it does not respond or incorrectly behave), they will turn off power on this node by using IPMI or UPS. This is working well when whole cluster placed inside one data-centre and when happens a failure with a server, IPMI or UPS is continue working. But all clusters was designed to be placed on several data-centres. It must survive a much more catastrophic scenario: a failure or a net isolation of one data-centre. So this is **impossible** to use *STONITH*, because in the case of this scenario all *stonith* devices (IPMI, UPS, etc) will not work too.
 
-Если количество узлов четное (кластер в двух дата-центрах), то может возникнуть так называемая неопределенность **50%/50%** (*фифти-фифти*), когда сетевая изоляция делит кластер ровно пополам. Поэтому для четного количества узлов добавляется **quorum device** — нетребовательный демон, который может быть запущен на самой дешевой виртуалке в третьем дата-центре. Он дает свой голос одному из сегментов (который видит), и тем самым разрешает неопределенность 50%/50%. Сервер, на котором будет запущен quorum device, я назвал *witness* (терминология из repmgr, мне понравилась).
+Instead to protect from a **split-brain** used other technique called **quorum**. All nodes has a voice and may work only those nodes, who can listen voices from the more than half number of nodes in the cluster. This number equal to "half+1" is also called **quorum**. If a node don't see the quorum, then it decides that it is in a net isolation and must turn its services off, this is a protection from the **split-brain**. If the software that answers for such behaviour is failed, then must fire a watchdog (for instance IPMI based) and turn off the node.
 
-Ресурсы могут переезжать с места на место, например, с неисправных серверов на исправные, или по команде сисадминов. Чтобы клиенты знали, где находятся нужные им ресурсы (куда подключаться?), используются *плавающие IP* (**float IP**). Это IP, которые Pacemaker может перемещать по узлам (всё находится в плоской сети). Каждый из них символизирует ресурс (сервис) и будет находится там, куда надо подключаться, чтобы получить доступ к этому сервису (в нашем случае БД).
+In the case of even nodes (a cluster on two data-centres) there may be risen uncertainty **50%/50%** (*fifty-fifty*), when a net isolation will split the cluster into equal parts. So for the case of even nodes must be added so called **quorum device**. It is a small daemon which may run on a cheapest VM in a third data-centre. It will give its voice to one of the split segments (which it can observe) and thus uncertainty **50%/50%** will be resolved. The server with  **quorum device** I call **witness** (this term was taken from [RepMgr](https://repmgr.org)).
 
-## Tuchanka1 (схема с уплотнением)
-### Структура
+A services may travel from a node to a node, for instance from a failed node to worked or by a sysadmin command. So to direct a client of a service to the right node to connect to the service **float IP** is used. This is IP that Pacemaker can move between nodes of a cluster (the cluster is inside a flat net). Each *float IP* symbolise an service and it will be on a node to where clients must connect to get access to this service (DB, for instance).
+
+## Tuchanka1 (schema with compression)
+### Structure
 ![Tuchanka1](images/HAPgSQLStructure.001.png)
-Идея была в том, что у нас есть много мелких баз данных с низкой нагрузкой, для которых невыгодно содержать выделенный slave-сервер в режиме hot standby для read only-транзакций (нет необходимости в такой растрате ресурсов).
+This cluster is designed for the case of many small databases with low load. In such case is unprofitable to keep a dedicated slave server as a hot standby for read-only transactions. Each data-centres have one server. On each server there are two instance of PostgreSQL. (In documentation of PostgreSQL an instance is called a cluster, but to prevent confusion I will call it an instance, while a cluster I will use only for a Pacemaker clusters.) One instance on the server works as a master, while the another is a slave for the secondary server.
 
-В каждом дата-центре по одному серверу. На каждом сервере по два инстанса PostgreSQL (в терминологии PostgreSQL они называются кластерами, но во избежание путаницы я буду их называть  инстансами (по аналогии с другими БД), а кластерами буду называть только кластеры Pacemaker). Один инстанс работает в режиме мастера, и только он оказывает услуги (только на него ведет float IP). Второй инстанс работает рабом для второго дата-центра, и будет оказывать услуги только если его мастер выйдет из строя. Поскольку бо̒льшую часть времени оказывать услуги (выполнять запросы) будет только один инстанс из двух (мастер), все ресурсы сервера оптимизируются на мастер (выделяется память под кэш shared\_buffers и т.д.), но так, чтобы на второй инстанс тоже хватило ресурсов (пусть и для неоптимальной работы через кэш файловой системы) на случай отказа одного из дата-центров. Раб не оказывает услуги (не выполняет read only-запросы) при нормальной работе кластера, чтобы не было войны за ресурсы с мастером на той же самой машине.
+Only a master performs services, so a float IP points only to a master. The slave does not perform service in time of normal working of data-centre to prevent fighting with the master for the resources on the same server. The slave will perform services only after failing of its master and promoting to a master itself. The most time only one instance in a server will perform service, so all resources of the server may be optimised only for it (shared_buffers, etc). But there must be enough reserve for the slave instance in time of failing the secondary data-centre (may be for none optimal work mostly through the cache of OS file system).
 
-В случае с двумя узлами отказоустойчивость возможна только при асинхронной репликации, так как при синхронной отказ раба приведёт к остановке мастера. При асинхронной репликации при отказе мастера возможна потеря подтвержденных закоммиченных транзакций.
+In the case of two nodes only an async replication is possible for HA, because with a sync replication failing of a slave will lead to stopping the master. But **with async replication confirmed committed transactions may be loosed after failing a master**.
 
-### Отказ witness
+### Witness fault
 ![failure witness](images/HAPgSQLStructure.002.png)
-Отказ witness (*quorum device*) я рассмотрю только для кластера Tuchanka1, со всеми остальными будет та же история. При отказе witness в структуре кластера ничего не изменится, всё продолжит работать так же, как и работало. Но кворум станет равен 2 из 3, и поэтому любой следующий отказ станет фатальным для кластера. Всё равно придётся срочно чинить.
+Failing of witness I will demonstrate only for the cluster Tuchanka1. With other clusters it will be the same story. Nothing will be changed in the structure of the cluster after failing of the witness. All will work as usual. But quorum will be 2 of 3 and thus any one more failing will be catastrophic. So witness must be repaired as fast as possible too.
 
-### Отказ Tuchanka1
+### Tuchanka1 fault
 ![failure Tuchanka1](images/HAPgSQLStructure.003.png)
-Отказ одного из дата-центров для Tuchanka1. В этом случае *witness* отдает свой голос второму узлу на втором дата-центре. Там бывший раб превращается в мастера, в результате на одном сервере работают оба мастера и на них указывают оба их float IP.
+This is failing of one of the data-centres of Tuchanka1. In this case *witness* will give its voice to the node on the second data-centre. Here a former slave will promote to a master. Thus on one server will be two masters and both float IP will point on them.
 
-## Tuchanka2 (классическая)
-### Структура
+## Tuchanka2 (classic)
+### Structure
 ![Tuchanka2](images/HAPgSQLStructure.004.png)
-Классическая схема из двух узлов. На одном работает мастер, на втором раб. Оба могут выполнять запросы (раб только read only), поэтому на обоих указывают float IP: krogan2 — на мастер, krogan2s1 — на раба. Отказоустойчивость будет и у мастера, и у раба.
+This is a classic schema of two nodes. A master exists on the first node, the slave is on second. Both can perform queries (slave read only). So both are pointed by float IP: krogan2 points on the master, krogan2s1 points on the slave. High availability will be for the both float IPs.
 
-В случае с двумя узлами отказоустойчивость возможна только при асинхронной репликации, так как при синхронной отказ раба приведёт к остановке мастера. При асинхронной репликации при отказе мастера возможна потеря подтвержденных закоммиченных транзакций.
+In the case of two nodes only an async replication is possible for HA, because with a sync replication failing of a slave will lead to stopping the master. But **with async replication confirmed committed transactions may be loosed after failing a master**.
 
-### Отказ Tuchanka2
+### Tuchanka2 fault
 ![failure Tuchanka2](images/HAPgSQLStructure.005.png)
-При отказе одного из дата-центров *witness* голосует за второй. На единственном работающем дата-центре будет поднят мастер, и на него будут указывать оба float IP: мастерский и рабский. Разумеется, инстанс должен быть настроен таким образом, чтобы у него хватило ресурсов (лимитов под connection и т.д.) одновременно принимать все подключения и запросы от мастерского и  рабского float IP. То есть при нормальной работе у него должен быть достаточный запас по лимитам.
+After failing one of the data-centres the *witness* will vote for the second. On the one working server will be the master. Both float IP (master and slave) will point on it. Sure, the instance of PostgreSQL must be configured and have enough resources (connection limit, etc) to get all connection from the master and slave float IP simultaneously.
 
-## Tuchanka4 (много рабов)
-### Структура
+## Tuchanka4 (many slaves)
+### Structure
 ![Tuchanka4](images/HAPgSQLStructure.006.png)
-Уже другая крайность. Бывают БД, на которые идет очень много запросов read-only (типичный случай высоконагруженного сайта). Tuchanka4 — это ситуация, когда рабов может быть три или больше для обработки таких запросов, но всё же не слишком много. При очень большом количестве рабов надо будет изобретать иерархическую систему реплицирования. В минимальном случае (на картинке) в каждом из двух дата-центров находится по два сервера, на каждом из которых по инстансу PostgreSQL.
+This is another edge. This is for databases with high load of read only queries (typical case of high loaded web site). Tuchanka4 is a situation, when the slaves may be three or more, but not too many. With a lot of slaves a hierarchical replication schema must be used. In minimal case (as on the picture) there are two servers in each of two data-centres. There is one instance of PostgreSQL in the each server.
 
-Еще одной особенностью этой схемы является то, что здесь уже можно организовать одну синхронную репликацию. Она настроена так, чтобы реплицировать, по возможности, в другой дата-центр, а не на реплику в том же дата-центре, где и мастер. На мастер и на каждый раб указывает float IP. По хорошему, между рабами надо будет делать балансировку запросов каким-нибудь *sql proxy*, например, на стороне клиента. Разному типу клиентов может требоваться разный тип *sql proxy*, и только разработчики клиентов знают, кому какой нужен. Эта функциональность может быть реализована как внешним демоном, так и библиотекой клиента (connection pool), и т.д. Всё это выходит за рамки темы отказоустойчивого кластера БД (отказоустойчивость *SQL proxy* можно будет реализовать независимо, вместе с отказоустойчивостью клиента).
+One of the advantage of this schema is here can be used a sync replication. The sync replication designed to do replication to other data-centre, if this is possible. Float IPs point on the master and the all slaves. It will be good to balance loading between slaves in some way, for instance by *sql proxy* on the client side, because different clients may be need different *SQL proxy* or different configuration of a *SQL proxy* and only developers of client know how perfectly configure *SQL proxy* for their needs. This functionality can be achieved by a real *sql proxy* daemon, or by connection pool inside library, etc. All this question is out of matter of a HA cluster. HA of the *SQL proxy* can be designed with HA of clients, independently from the HA cluster.
 
-### Отказ Tuchanka4
+### Tuchanka4 fault
 ![failure Tuchanka4](images/HAPgSQLStructure.007.png)
-При отказе одного дата-центра (т.е. двух серверов) witness голосует за второй. В результате во втором дата-центре работают два сервера: на одном работает мастер, и на него указывает мастерский float IP (для приема read-write запросов); а на втором сервере работает раб с синхронной репликацией, и на него указывает один из рабских float IP (для read only-запросов).
+Fault of the one data-centre will mean fault of the two servers. The witness will vote for the other data-centre. As result on the second data-centre will work two servers. The one is for the master and it will be pointed by the master float IP to get read-write queries. The second is for a slave with the sync replication, it will be pointed be one of the slave float IP to get read only queries.
 
-Первое, что надо отметить: рабочими рабский float IP будут не все, а только один. И для корректной работы с ним нужно будет, чтобы *sql proxy* перенаправлял все запросы на единственно оставшийся float IP; а если *sql proxy* нет, то можно перечислить все float IP рабов через запятую в URL для подключения. В таком случае с *libpq* подключение будет к первому рабочему IP, так сделано в системе автоматического тестирования. Возможно, в других библиотеках, например, JDBC, так работать не будет и необходим *sql proxy*. Так сделано потому, что у float IP для рабов стоит запрет одновременно подниматься на одном сервере, чтобы они равномерно распределялись по рабским серверам, если их работает несколько.
+First notice: only one of the slave float IP will work, but not all. This is because in this schema the slave float IP designed to be risen only on different servers. So a *SQL proxy* will may direct all connection to only the one live float IP, but not exceed the connection limits of the node. There is a simple way without a *SQL proxy*, this can be also achieved by using a feature of *libpq*, all the slave float IPs can be written in the same URL as comma separated list. In this case *libpq* will connect to the first working IP from the list. This technique is used in this automatic test system, but may be not appropriate for the production system, because it can not guarantee not exceeding the connection limit of the node.
 
-Второе: даже в случае отказа дата-центра будет сохраняться синхронная репликация. И даже если произойдёт вторичный отказ, то есть в оставшемся дата-центре выйдет из строя один из двух серверов, кластер хоть и перестанет оказывать услуги, но всё же сохранит информацию обо всех закоммиченных транзакциях, на которые он дал подтверждение о коммите (не будет потери информации при вторичном отказе).
+Second notice: even after fault of one of the data-centres the sync replication will be remain. And even after secondary fault, when in the last data-centres will fault one of the server, then the cluster will not work, but all information about confirmed committed transactions will be kept. (There will not loosing information after secondary fault).
 
-## Tuchanka3 (3 датацентра)
-### Структура
+## Tuchanka3 (3 data-centres)
+### Structure
 ![Tuchanka3](images/HAPgSQLStructure.008.png)
-Это кластер для ситуации, когда есть три полноценно работающих дата-центра, в каждом из которых есть полноценно работающий сервер БД. В этом случае *quorum device* не нужен. В одном дата-центре работает мастер, в двух других — рабы. Репликация синхронная, типа ANY (slave1, slave2), то есть клиенту будет приходить подтверждение коммита, когда любой из рабов первым ответит, что он принял коммит. На ресурсы указывает один float IP для мастера и два для рабов. В отличие от Tuchanka4 все три float IP отказоустойчивы. Для балансировки read-only SQL-запросов можно использовать *sql proxy* (с отдельной отказоустойчивостью), либо половине клиентов назначить один рабский float IP, а другой половине — второй.
+This is a case when three data-centres can be used with full power. There is one working server on each of them, a master with a float IP is on one, slaves with float IPs are on two others. In this case *quorum device* is not needed. The replication is **ANY (slave1, slave2)**. This mean that a client will get confirmation about commit when one of the two slaves will confirm that it has accepted commit. Unlike Tuchanka4, both slave float IP are high available here. To balance read-only SQL queries an *SQL proxy* may be used. Or just assign one of the slave float IPs to one half of the clients and the second to the other half of the clients.
 
-### Отказ Tuchanka3
+### Tuchanka3 fault
 ![failure Tuchanka3](images/HAPgSQLStructure.009.png)
-При отказе одного из дата-центров остаются два. В одном поднят мастер и float IP от мастера, во втором — раб и оба рабских float IP (на инстансе должен быть двукратный запас по ресурсам, чтобы принять все подключения с обоих рабских float IP). Между мастеров и рабом синхронная репликация. Также кластер сохранит информацию о закоммиченных и подтвержденных транзакциях (не будет потери информации) в случае уничтожения двух дата-центров (если они уничтожены не одновременно).
+After a fault of one of the data-centres there will be the two other working data-centres. The one of them will have the master and the master float IP. The second will have the slave and both the slave float IP. (Instance must have enough the connection limit to get all connection from the both float IP.) Between master and the last slave will be the sync replication. And even after secondary fault, when in the last data-centres will fault one of the server, then the cluster will not work, but all information about confirmed committed transactions will be kept. (There will not loosing information after secondary fault).
 
-## Важное замечание
-Я уже писал об этом, но важно подчеркнуть. В кластерах Tuchanka1 и Tuchanka2 по два узла и асинхронная репликация, потому что при синхронной при отказе раба остановится мастер. Это может вызывать потерю информацию при отказе мастера, могут пропасть закоммиченные и уже подтвержденные клиенту (что они закоммиченны) транзакции. Насколько это важно - зависит от контекста. Одно дело, если пропадут чьи-то сообщения на форуме. А другое дело, если у абонента со счета не спишутся или не поступят деньги, другими словами деньги пропадут. И это еще неизвестно, что хуже, когда деньги у абонента не спишутся или если они абоненту не поступят. :) В Tuchanka3 и Tuchanka4 такой проблемы быть не должно.
+## Important notice
+I already have written about it, but I want to emphasise. The clusters Tuchanka1 and Tuchanka2 has only two nodes and so only an async replication. Thus **confirmed committed transactions may be loosed after failing a master**. How much this is important depends on the context. One case is loosing someone text messages on a web forum. The other case if will be loosed someones money. Tuchanka3 and Tuchanka4 don't have such disadvantage.
 
-# Список файлов
+# File list
 #### README.md
-Этот файл, краткое описание всего.
+This is this file, brief description of anything.
 
 #### HAPgSQLStructure.key
-Картинки для презентации. Открывается в Keynote.app (презентации под MacOS).
+Pictures for a presentation. Can be opened by Keynote.app under macOS.
 
 #### images/
-Папка, где хранятся картинки, например используются в *README.md*.
+A folder for images, for instance to use in this *README.md*.
 
 #### setup/
-Bash скрипты для создания и удаления виртуалок.
+Bash scripts to create and destroy VMs.
 
 #### upload/
-Там лежат файлы предназначенные для заливки на виртуалки.
+Files to upload into VMs.
 
 #### upload/common/
-Файлы общие для всех виртуалок.
+Files common for all VMs.
 
 #### upload/pcs/
-Шелловские скрипты, запускаться будут на виртуалках, содержат команды для `pcs`, которые настраивают конфигурацию кластера.
+Commands for `pcs` to configure clusters.
 
 #### test/
-Скрипты которыми я тестировал кластер.
+Scripts to test clusters.
 
 #### lib/
-Библиотечка функций на *bash*, используются различными скриптами.
+Library of functions for *bash*, used by different scripts.
 
 #### default\_config.bash load\_config.bash
-По умолчанию используется конфиг *default_config.bash* из git: рабочий и достаточный. Но если в конфиг надо внести изменения, то надо скопировать *default_config.bash* в *config.bash* и его уже править. Но конфиг влияет только на bash скрипты, которые выполняются на хосте. На файлы, которые лежат в upload и копируются на виртуалки, он не влияет. Поэтому, если вносятся изменения в *config.bash*, то надо будет вносить соответствующие изменения и в файлы в *upload/*. *load\_config.bash* функция используется всеми скриптами: загружает *config.bash*, если есть, если нет, то *default_config.bash*. Поскольку местоположение папки с библиотечными функциями задается в конфиге, то скрипт по загрузке конфига вынужден положить в корень.
+By default is used the config *default_config.bash* from git. It is sufficient for working. But if you want to change the default settings then you need to copy *default_config.bash* to *config.bash* and edit the later. But the config influences only on the scripts that worked on the host, but not inside VMs. So if you have changed the default config you also need to change the corresponding settings in the files inside *upload/* dir, which will be copied into VMs. *load\_config.bash* is a function used by all scripts. It will load *config.bash* if it exists, if not then load *default_config.bash*. *load\_config.bash* is placed in the project root directory because path of the library dir will be defined inside the config itself and not known yet on this step.
 
 #### power\_on power\_off shut\_down
-Создал для собственного удобства, для того чтобы можно было запускать/останавливать виртуалки не запуская GUI VirtualBox. Могут в качестве параметра принимать номера кластеров, если параметров нет, то работают со всеми. Например, чтобы запустить виртуалки Tuchanka2 вместе с witness (где quorum device), достаточно написать `./power_on 0 2`. Сам Pacemaker кластер при этом не стартует, его можно будет запустить вручную, [ниже написано как](#ручное-тестирование).
+I created this scripts for my convenience to start/stop VMs without launching the GUI VirtualBox. This scripts can take as option numbers of the clusters, without option they will work for all clusters. For instance, to start VMs *Tuchanka2* with *witness* (quorum device) enough `./power_on 0 2`. The Pacemaker cluster itself will not start, how to launch it [is written below](#manual-testing).
 
 #### tmux\_ssh
-Запускает tmux сервер и осуществляет ssh ко всем 12ти виртуалкам. Полезен для массовых манипуляций над виртуалками со стороны юзера. Для того чтобы набирать команды одновременно на всех виртуалках сразу, можно воспользоваться фичей tmux: *Ctrl-b :* `set synchronize-panes on`. Задуман для использования совместно с вышеописанными скриптами: `power_on` и т.д. И точно так же можно в качестве параметров указывать номера кластеров (групп виртуалок). Используется выделенный tmux сервер, поэтому его можно запускать из под default tmux. Но используемый выделенный tmux сервер одинаков для `tmux_ssh` и скриптов в *setup/* и *test/*, поэтому совместно с теми скриптами этот лучше не запускать, будет конфликт.
+Launch *tmux* and make ssh connect to all 12 VMs. Useful for mass manipulations with the VMs by the user. To perform commands on all VMs simultaneously the feature of the tmux can be used: *Ctrl-b :* `set synchronize-panes on`. Designed to use with scripts described upper: `power_on`, etc. And it also accepts as options numbers of the clusters (VMs groups). It use dedicated tmux server, so it can be used from the default tmux server. But this dedicated server is the same as for scripts used in the project, for instance, under dir *setup/* and *test/*, so it `tmux_ssh` will conflict with this scripts.
+
 
 #### etc\_hosts ssh\_config ssh\_known\_hosts
-Создаются скриптом `setup/create` при создании виртуалок, используются остальными скриптами. В них соответственно: *etc_hosts* список ip и имен виртуалок в формате подходящем для вставки в */etc/hosts* (копируется в виртуалки), *ssh_config* скрипты используют этот конфиг для ssh коннектов к виртуалкам, *ssh_known_hosts* список публичных ключей виртуалок.
+This files are created by the script `setup/create` before creating VMs and used by other scripts.
+- *etc_hosts* is a list of IPs and names of VMs, used to upload into VMs as */etc/hosts*.
+- *ssh_config* is used by the scripts to make ssh connection to the VMs.
+- *ssh_known_hosts* is a list of public keys of the VMs.
 
-# Настройка терминала
-Что при создании и настройке виртуалок, что автоматическом тестирование работа распараллеина. Окно терминала будет разбито с помощью *tmux* на несколько панелей, в каждом из которых будет отображаться выход своего потока, отвечающего либо за настройку виртуалки, либо кластера. Поскольку панелей будет много, желательно на терминале иметь шрифт поменьше, а экран (окно терминала) побольше. Привожу пример настройки шрифта Terminal.app для экрана Retina MacBook Pro, 16 inch, 2019.
+# Preferences of Terminal.app
+The creation and setup of VMs and automatic tests are doing in parallel. The windows of a terminal will be split by the tmux into several panes, each pane will show output of one process. The panes will be a lot enough, so it is desirable to have a terminal with a small font and a large size of the window. Here is an example of setup Terminal.app for a display of Retina MacBook Pro, 16 inch, 2019.
 ![screenshot of a terminal setup](images/terminal_16Retina.png)
 
-А вот пример настройки шрифта для экрана Full HD 1920\*1080.
+And here is an example of setup of Terminal.app for a display Full HD 1920\*1080.
 ![screenshot of a terminal setup](images/terminal_HD.png)
 
-На случай если предпочитаете использовать *iTerm*. Скрипт автоматического тестирования `test/failure` (и быть может другие) создают такую нагрузку для *iTerm*, что начинают тормозить все окна *iTerm*. Это затрудняет параллельную работу юзера. Поэтому настойчиво рекомендую запускать скрипты из этого проекта в *Terminal.app*, а самому можно работать в *iTerm*.
+This is a notice if you prefer to use *iTerm.app*. The script of the automatic testing system `test/failure` (and may be others) creates too hight load for *iTerm*, so all windows of *iTerm.app* begin slow. It will impede working of the user. So I recommend launch scripts inside *Terminal.app*, while keep own working inside *iTerm.app*.
 
-# Установка
-**Важное замечение владельцам MacOS. MacOS Catalina 10.15.6 (19G73) содержит баг, который приводит к утечке памяти из ядра OS при работе с виртуалками, что приводит к зависаниям и выключениям MacOS при длительной работе. Настойчиво рекомендую обновить до macOS Catalina 10.15.6 (19G2021). Полную версию MacOS можно увидеть в "Об этом Mac"->"Отчет о системе"->"ПО".**
+# Installation
+**Important notice for users of macOS. MacOS Catalina 10.15.6 (19G73) have a bug leakage in the kernel memory when OS works with VMs. This lead to freezing and power off by a watchdog on long working. I recommend to update to macOS Catalina 10.15.6 (19G2021).** The version number of macOS your can see in "About This Mac"->"System Report..."->"Software".
 
-На хосте (MacBook) нужно поставить VirtualBox. Версия VirtualBox 6.0.24 ([нестабильна](https://www.virtualbox.org/ticket/19370) и иногда не поднимается virtio-net при загрузке). Проблемы проявляются при тестировании, использовать не рекомендую. VirtualBox 6.1.12 [наблюдал ошибку bad\_alloc при создании скриншотов](https://www.virtualbox.org/ticket/19812), на тестировании не должно сказаться, но могут быть проблемы при развертывании, в этом случае достаточно будет перезапустить соответствующий этап развертывания. Для работы скриптов используется bash версии 3 и ssh (в случае MacOS они идут в комплекте), так же надо установить, например через HomeBrew: PostgreSQL >=11 (для psql) и tmux (тестировал с 3.1b).
+The project is designed and tested on MacBook Pro, but may be it can work on other OSes. On the host (MacBook) must be installed VirtualBox. VirtualBox 6.0.24 [is unstable](https://www.virtualbox.org/ticket/19370). This problem will influence testing, so I do not recommend this version. VirtualBox 6.1.12 sometimes [has problem bad\_alloc on snapshot creation](https://www.virtualbox.org/ticket/19812). This bug will not influence testing, but sometimes it will stop the process of the installation. In this case will be enough to restart the corresponded installation stage. For the scripts to work need bash version 3 and ssh. In case of macOS they are in the default system installation. Also need to install PostgreSQL >=11 (for psql) and tmux (tested with 3.1b), for instance by using HomeBrew.
 
-Почти у всех виртуалок, кроме *witness*, отсутствует выход в интернет, у них только один интерфейс в виртуальной подсетке, где они осуществляют связь между собой. Только в сервере *witness* два сетевых интерфейса, один во внутренней подсетке, второй для выхода в интернет. *Witness* обеспечивает остальные сервера доступом к yum репозиториям, через кэширующий http proxy, и точным временем.
+Only *witness* will have access to the internet. It has two interfaces, one for the internal network, other for Internet. All other VMs will have only one interface inside the internal network. *Witness* will provide other VMs with access to yum-repositories through caching HTTP proxy, and will provide with NTP time.
 
-Для моего удобства процесс развертывания автоматизирован, в том числе скрипты автоматический запускают команды *VBoxManager* такие как: создание снэпшотов файловой системы, запуск и остановка виртуалок. Поскольку процесс инсталляции с образа DVD и доустановка пакетов по сети занимает довольно длительное время, весь процесс установки осуществляется тремя этапами, их подробно опишу ниже, в конце каждого этапа автоматический создается снэпшот, на случай если в следующем этапе что-то пойдет не так. А в начале этапа автоматический переходит на снэпшот предыдущего этапа. И все скрипты объединены в цепочку. Например, если запустить `create` (создание виртуалок), то он в конце своей работы сам запустит скрипт `install` (установка софта), а тот в конце своей работы скрипт `setup` (настройка софта и кластеров Pacemaker).
+The process of the installation is automated. The scripts automatically will perform: creation VMs, creation of filesystem snapshots, start and stop VMs, etc. The whole installation consist of three stages, after each stage will be created a snapshot. And at the begin of a stage the script will load the snapshot of the previous stage. And all scripts is united in a chain. For instance if you have launched `create` (creation of VMs), this script at the end will launch the script `install` (software installation), and later `setup` (setup of software and Pacemaker clusters) will be launched.
 
-**Все виртуалки в сумме занимают достаточно большое количество ОЗУ, на MacBook Pro 16GiB хватает впритирку. По процессорам то же самое, при полной нагрузке виртуалки заберут 12 из 12 ядер (по 2 ядра на виртуалку с 50% ограничением). Рекомендую закрывать ненужные программы. Поскольку процесс установки и тестирования может занимать достаточно длительное время, настойчиво рекомендую в настройках MacOS отключить переход в спящий режим при выключении экрана.**
+**All VMs in sum takes enough big part of RAM. MacBook Pro 16GiB is barely enough. The same with CPU, on full load VMs will take 12 of 12 CPU kernels (2 kernel for one VM with 50% restriction). I recommend to close unnecessary programs. The installation and testing process is long enough so I recommend to turn on option "Prevent computer from sleeping automatically when the display is off" in MacBook preferences.**
 
-Процесс установки **иногда может не завершиться**, чаще всего сбои происходят на этапе 'install' (установка пакетов). Не всегда понятно, с чем это может быть связанно, может быть нехватка ресурсов или производительности, могут быть сетевые проблемы. Для возобновления установки можно перезапустить этап, на котором был сбой.
+The installation **sometimes may suddenly stop**. More often this happens at `install` stage (software installation). This is not obvious why this happens, may be not enough resources and productivity or may be this due to some network troubles. For resumption of installation just restart the stage, where the fault was.
 
-Все команды для шелла даны для `bash`.
+All commands below is for the `bash` shell from the project root directory.
 
-## Создание виртуальных машин
+## VMs creation
 ![screenshot of `create`](images/create.png)
-Создаются виртуальные машины и устанавливаются пакеты командой:
+The VMs are created by the command:
 
 	setup/create <redhat_installation_image.iso> <root_ssh_public_key.pub>
 
-Загрузочный диск должен быть от редхатоподобного дистрибутива 7й версии. Я использовал `CentOS-7-x86_64-Minimal-2003.iso`. Не должно быть **'** в публичном ключе (он там может быть только в комментариях). И **если приватный ключ от этого публичного ключа защищен паролем, он должен быть добавлен в keychain**, например с помощью `ssh-add -K`. Ключи загружаются при выполнении скриптов с помощью `ssh-add -A`, эту команду можно изменить в конфиге, например, для того чтобы загружать конкретный ключ, а не все, или чтобы не искать пароль в keychain. Скрипт делает:
-- Удаляет виртуалки и файлы предыдущей работы, если они есть.
-- Создает вспомогательные конфигурационные файлы (типа etc\_hosts, ssh\_config, etc), которые используются в дальнейших этапах.
-- Настраивает общую подсетку в VirtualBox.
-- В цикле создает и запускает headless все 12 виртуалок: 2 ядра, 600MiB ОЗУ, 3GiB виртуальный диск.
-- Устанавливает на них Linux из указанного образа: один раздел винчестера, без swap. Переключение раскладок клавиатуры на **Ctrl-Shift**, пароль у root *"changeme"* (полезен на случай захода через консоль). Хоть и будет надпись, что создаётся еще пользователь vboxuser, он не создаётся. При инсталляции записывается публичный ключ root'а для ssh (тот что указан вторым аргументом).
-- Запускает, записывает ssh публичный ключ виртуалок на хост.
-- Отключает kdump (экономлю ресурсы).
-- Устанавливает русскую локаль (с английским `LC_MESSAGES`).
-- Выключает виртуалки и делает снэпшот *create*.
-- Запускает следующий скрипт.
+The installation image must be of RedHat 7 alike distribution. I use `CentOS-7-x86_64-Minimal-2003.iso`. There must not be **'** inside the public key (it can be there only in comments). And **if the private key of this public key protected by password, it must be added into keychain**, for instance by command `ssh-add -K`. The private key are loaded into the ssh agent by command `ssh-add -A` inside the scripts. This command can be changed in the config file, for instance to load only one key, but not all. The script `setup/create` does:
+- Destroy VMs and delete files created from previous attempts, if they exists.
+- Create auxiliary config files (etc\_hosts, ssh\_config, etc), which will be used later.
+- Create a subnet inside VirtualBox.
+- Create and launch headlessly 12 VMs: 2 kernels, 600MiB RAM, 3GiB of virtual HDD.
+- Install Linux from the installation image: one partition, without swap. The root password is *"changeme"*, useful to login with the VirtualBox console. And will upload the ssh public key (the second option) to the root home dir to access with ssh.
+- After restart takes a host ssh public key from VMs and write it in the *ssh\_known\_hosts* file on the host in the project root directory.
+- Turn off kdump (to save resources).
+- Turn off VMs and do a shapshot *create*.
+- Launch the next script `install`.
 
-Поскольку большая часть работы проходит внутри виртуалок с выводом только в их консоль, то наблюдать за процессом в окне терминалки мало пользы, там большей частью будет цикл ожидания. Чтобы было интереснее, можно запустить GUI VirtualBox и там наблюдать за процессом на экранах консолей.
+The most part of working of this stage is inside VMs with output to a console, it is useless to observe the terminal window, you will see only a waiting loop most of the time. If you want you may launch GUI VirtualBox and look for the process on the screens of consoles.
 
 ![screenshot of VirtualBox](images/virtualbox.png)
 
-Время выполнения 18 минуты на MacBook Pro. Обратный скрипт `setup/destroy_vms` (удаляет виртуалки). И чтобы откатиться на момент завершения скрипта `create` скрипт `setup/rollback2create`.
+Reverse script is `setup/destroy_vms` (will destroy VMs). To rollback to the finish of this script (the snapshot *create*) use `setup/rollback2create`.
 
-## Установка пакетов
+## Packages installation
 ![screenshot of `install`](images/install.png)
-- Откатывает к снэпшоту `create`.
-- Настраивает **http proxy** на *witness*.
-- Устанавливает/обновляет пакеты.
-- Выключает виртуалки и делает снэпшот *install*.
-- Запускает следующий скрипт.
+The script `setup/install` does:
+- Rollback to the snapshot *create*.
+- Setup *HTTP proxy* on the *witness*.
+- Install and update packages.
+- Turn off VMs and do a snapshot *install*.
+- Launch the next script `setup`.
 
-Этот этап работает нестабильно и иногда скрипт останавливается (ошибки в yum или squid?). Чтобы продолжить установку достаточно перезапустить этот этап командой `setup/install`. С этим буду разбираться после перехода на `Centos 8`.
+This stage is unstable and sometimes suddenly stops. May be troubles in yum or squid or somewhere else. To repeat installation enough to restart this stage by command `setup/install`. I will look for how to fix this after upgrading to *CentOS 8*.
 
-Время выполнения 19 минуты на MacBook Pro, время выполнения сильно зависит от количества пакетов требующих обновления. Обратный скрипт `setup/rollback2create`. И чтобы откатиться на момент завершения скрипта `install` скрипт `setup/rollback2install`.
+Reverse script is `setup/rollback2create`. To rollback to the finish of this script (the snapshot *install*) use `setup/rollback2install`.
 
-## Настройка Pacemaker и установка БД heartbeat
+## Setup of Pacemaker and deploying database "heartbeat"
 ![screenshot of `setup`](images/setup.png)
-Скрипт `setup/setup`:
-- Откатывает к снэпшоту `install`.
-- Копирует на все виртуалки нужные файлы.
-- Настраивает ntpd, для устойчивой работы при сетевой изоляции, например, на случай изолированного стенда на ноутах.
-- На всех запускает pcsd (REST демон для `pcs`), редхатовская управлялка Pacemaker.
-- На *witness* запускает кворум девайс.
-- Создает в Pacemaker четыре кластера, проводит первичную настройку.
-- Создает 5 инстансов PostgreSQL, в первом инстансе 2 БД, в остальных по одной.
-- PAF модуль (pgsqlms) требует, чтобы до запуска через Pacemaker, PostgreSQL был запущен в ручном режиме с установившейся репликацией.
-- В Pacemaker создает ресурсы в соответствии к созданным БД, прописывает для них плавающие IP.
-- Ждет появления пинга на плавающий IP мастера (как критерий, что кластер встал).
-- Создает *heartbeat* пользователя и БД.
-- Выключает кластера, виртуалки, делает снэпшот *setup*.
+The script `setup/setup` does:
+- Rollback to the snapshot `install`.
+- Upload files from *upload* directory to the VM.
+- Setup NTPd for stable working in the time of net isolation.
+- Launch pcsd (the REST daemon for `pcs`). This is RedHat utility to manage Pacemaker.
+- Launch the quorum device on the *witness*.
+- Create four clusters of Pacemaker, do initial setup of Pacemaker.
+- Create five instances of PostgreSQL.
+- PAF (pgsqlms module) demand to launch PostgreSQL with working replication before adding it to Pacemaker.
+- Create resources (services) in Pacemaker with there floating IPs.
+- Wait for a ping from the master float IP (this is indication that the master is up).
+- Deploy "*heartbeat*" user and database.
+- Stop clusters, turn off VMs, do a snapshot *setup*.
 
-Время выполнения 6 минуты на MacBook Pro. Обратный скрипт `setup/rollback2install`. И чтобы откатиться на момент завершения скрипта `setup` скрипт `setup/rollback2setup`.
+Reverse script is `setup/rollback2install`. To rollback to the finish of this script (the snapshot *setup*) use `setup/rollback2setup`.
 
-# Конфиги на хосте
-Для удобства своей работы, я внес следующие изменения в конфигах на хосте.
+# Hosts configs
+For my comfort I did next changes in the host (MacBook) configs. They are only for a user convenience and do not need for the scripts to work.
 
 #### /etc/hosts
-Добавил строчки:
+Add rows:
 
 # Tuchanka
 	192.168.89.1	witness witness.tuchanka
@@ -226,7 +233,7 @@ Bash скрипты для создания и удаления виртуало
 	192.168.89.254	virtualbox
 
 #### ~/.ssh/config
-Добавил строчки:
+Add rows:
 
 	#	Tuchanka
 	Host witness
@@ -269,92 +276,82 @@ Bash скрипты для создания и удаления виртуало
 		User root
 		UserKnownHostsFile "/Users/olleg/prog/GitHub/tuchanka 0/ssh_known_hosts"
 
-В последнюю строку надо будет прописать реальный путь к файлу (файл создается при первом запуске `create`).
+The path in the last row must be changed to the real path.
 
-# Система автоматического тестирования
-Для проверки отказоустойчивости кластеров с имитацией различных неисправностей сделана система автоматического тестирования. Запускается скриптом `test/failure`. Скрипт может принимать в качестве параметров номера кластеров, которые хочется потестировать. Например, эта команда:
+# Automatic testing system
+To check high availability of the clusters by imitation of different faults was created the automatic testing system. It can be launched by script `test/failure`. The script accepts as options numbers of the clusters to test. For instance, this command
 ```
 test/failure 2 3
 ```
-будет тестировать только второй и третий кластер. Если параметры не указаны, то тестироваться будут все кластеры. Все кластеры тестируются параллельно, а результат выводится в панели tmux. Tmux использует выделенный tmux сервер, поэтому скрипт можно запускать из-под default tmux, получится вложенный tmux. Рекомендую применять терминал в большом окне и с маленьким шрифтом, настроенный так, как [было описано выше](#настройка-терминала). Перед началом тестирования все виртуалки откатываются на снэпшот на момент завершения скрипта `setup`.
+will test only Tuchanka2 and Tuchanka3 cluster. If there are not options, thus all clusters will be tested. All clusters will be tested in parallel, the result will be shown in the tmux panels. Tmux will use the dedicated tmux server, so this script can be running inside the default tmux. I recommend to use a terminal with a small fonts and a big window configured [as was described upper](#preferences-of-terminalapp). Before the begin of testing the script will rollback all VMs to the snapshot `setup`.
 
 ![screenshot of `test/failure`](images/failure.png)
-Терминал разбит на колонки по количеству тестируемых кластеров, по умолчанию (на скриншоте) их четыре. Содержимое колонок я распишу на примере Tuchanka2. Панели на скриншоте пронумерованы:
+The terminal is split into columns of the testing clusters, by default (on the screenshot) four. I will describe the contents of columns by using Tuchanka2 as an example. The panes on the screenshot are numerated:
 
-1. Здесь выводится статистика по тестам. Колонки:
-	- **failure** — название теста (функции в скрипте), который эмулирует неисправность.
-	- **reaction** — среднее арифметическое время в секундах, за которое кластер восстановил свою работоспособность. Замеряется от начала работы скрипта, эмулирующего неисправность, и до момента, когда кластер восстанавливает свою работоспособность и способен продолжать оказывать услуги. Если время очень маленькое, например, шесть секунд (так бывает в кластерах с несколькими рабами (Tuchanka3 и Tuchanka4)), это означает, что неисправность оказалась на асинхронном рабе и никак не повлияла на работоспособность, переключений состояния кластера не было.
-	- **deviation** — показывает разброс (точность) значения **reaction** методом «стандартная девиация».
-	- **count** — сколько раз был выполнен этот тест.
-2. Краткий журнал позволяет оценить, чем занимается кластер в текущий момент. Выводится номер итерации (теста), временна̒я метка и название операции. Слишком долгое выполнение (> 5 минут) говорит о какой-то проблеме.
-3. **heart** (сердце) — текущее время. Для визуальной оценки работоспособности *мастера* в его таблицу постоянно пишется текущее время с использованием float IP мастера. В случае успеха результат выводится в этой панели.
-4. **beat**  (пульс) — «текущее время», которое ранее было записано скриптом **heart** в мастер, теперь считывается из *раба* через его float IP. Позволяет визуально оценить работоспособность раба и репликации. В Tuchanka1 нет рабов с float IP (нет рабов, оказывающих услуги), но зато там два инстанса (БД), поэтому здесь будет показываться не **beat**, а **heart** второго инстанса.
-5. Мониторинг состояния кластера с помощью утилиты `pcs mon`. Показывает структуру, распределение ресурсов по узлам и другую полезную информацию.
-6. Здесь выводится системный мониторинг с каждой виртуалки кластера. Таких панелей может быть и больше — сколько виртуалок у кластера. Два графика *CPU Load* (в виртуалках по два процессора), имя виртуалки, *System Load* (названый как Load Average, потому что он усреднен за 5, 10 и 15 минут), данные по процессам и распределение памяти.
-7. Трассировка скрипта, выполняющего тестирования. В случае неисправности — внезапного прерывания работы либо бесконечного цикла ожидания — здесь можно будет увидеть причину такого поведения.
+1. Here are statistics of tests. Columns:
+	- **failure** is a test name (name of the function in the script), which imitates a failure.
+	- **reaction** is an arithmetic average of the time in seconds the cluster took to restore working of the services. The start of the time interval is the start of the function imitated a fault. The finish of the time interval when the databases begin to work on their float IP. If time is too small, for instance 6s, this means that the fault was on a async slave and didn't stop working of the services (there was not switching of the Pacemaker cluster, this can be on Tuchanka3 and Tuchanka4).
+	- **deviation** is a standard deviation of the **reaction** time.
+	- **count** is number of tests performed.
+2. Brief log to see what the cluster to do in the current moment. You will see a number of an iteration (a test), timestamp and the name of the operation. If timestamp is staled for too long (more than 5 minutes), this means that there is some trouble.
+3. **heart** is current time. For the visual observation availability of the *master* the script will constantly write the current time to the float IP of the master. On success the script will show this timestamp in the pane.
+4. **beat** - the timestamp of "the current time", which was written by the **heart** script to the master and now is read from the float IP of the replicated slave. Thus visualise working of the slave and of the replication. In Tuchanka1 there are not slaves with float IP (there are not slaves performed services), but there are two master instances of PostgreSQL. So in Tuchanka1 **beat** will not be shown, but will be shown instead **heart** from the second PostgreSQL instance instead.
+5. This is monitoring of the status of the cluster by utility `pcs mon`. There are a structure of the cluster, locations of the resources (services) and other useful info.
+6. There is system monitoring of each VMs of the cluster. There are: two graph of *CPU Load* (VM has two CPU), name of VM, *System Load* (named as Load Average because it shows average for 5, 10, 15 minutes), processes and memory distribution.
+7. This is a trace of the script which perform testing. In the case of a fault of the script itself (a suddenly stop of the script or an infinite waiting loop) here you will can to see reason of it.
 
-Тестирование проводится в два этапа. Сначала скрипт проходит по всем разновидностям тестов, случайным образом выбирая виртуалку, к которой этот тест применить. Затем выполняется бесконечный цикл тестирования, виртуалки и неисправность каждый раз выбираются случайным образом. Внезапное завершение скрипта тестирования (нижняя панель) или бесконечный цикл ожидания чего-либо (> 5 минут время выполнения одной операции, это видно в трассировке) говорит о том, что какой-то из тестов на этом кластере провалился.
+The testing is performed in two stages. First stage: the script do all fault in order, randomly choosing a target. Last stage: the script in infinite loop randomly choose a fault and a target. A suddenly stop of the testing script (the lowest pane) or an infinite waiting loop (more than 5 minutes performing of the single operation) means that something go wrong.
 
-Каждый тест состоит из следующих операций:
+Every test consists of next operations:
 
-1. Запуск функции, эмулирующей неисправность.
-2. **Ready?** — ожидание восстановления работоспособности кластера (когда оказываются все услуги).
-3. Показывается время ожидания восстановления кластера (*reaction*).
-4. **Fix** — кластер «чинится». После чего он должен вернуться в полностью работоспособное состояние и готовности к следующей неисправности.
+1. Calling a special function to imitate a fault.
+2. **Ready?** — the script is waiting for restoration of working of the service.
+3. Show *reaction* time.
+4. **Fix** - the script is fixing the previously faulted node. After this the cluster must be healthy and ready to the next fault.
 
-Вот список тестов с описанием, что они делают:
+Here is a list of tests with description of a fault:
 
-- **ForkBomb**: создает "Out of memory" с помощью форк-бомбы.
-- **OutOfSpace**: переполняет винчестер. Тест переполнения винчестера **OutOfSpace**. Не смотря на то, что PostgreSQL испытывает трудности с записью, он, тем не менее, продолжает работать и PAF (pgsqlms) воспринимает его как нормально работающий. Переноса мастера на другой узел не происходит.
-- **Postgres-KILL**: убивает PostgreSQL командой `killall -KILL postgres`.
-- **Postgres-STOP**: подвешивает PostgreSQL командой `killall -STOP postgres`.
-- **PowerOff**: «обесточивает» виртуалку командой `VBoxManage controlvm "виртуалка" poweroff`.
-- **Reset**: перегружает виртуалку командой `VBoxManage controlvm "виртуалка" reset`.
-- **SBD-STOP**: подвешивает демон SBD командой `killall -STOP sbd`.
-- **ShutDown**: через SSH посылает на виртуалку команду `systemctl poweroff`, система корректно завершает работу.
-- **UnLink**: сетевая изоляция, команда `VBoxManage controlvm "виртуалка" setlinkstate1 off`.
+- **ForkBomb**: make "Out of memory" with the aid of a fork bomb.
+- **OutOfSpace**: overfull the virtual HDD. In this situation PostgreSQL has troubles, but continue partially working.  And PAF (pgsqlms module) do not detect this as a fault. The Pacemaker does not switch the master to an other node. It must be fixed somehow in future.
+- **Postgres-KILL**: kill PostgreSQL by the command `killall -KILL postgres`.
+- **Postgres-STOP**: freeze PostgreSQL by the command `killall -STOP postgres`.
+- **PowerOff**: de-energize VM by the command `VBoxManage controlvm "VM_name" poweroff`.
+- **Reset**: reboot VM by the command `VBoxManage controlvm "VM_name" reset`.
+- **SBD-STOP**: freeze the daemon SBD by the command `killall -STOP sbd`.
+- **ShutDown**: use SSH to send to a VM the command `systemctl poweroff`, the system will correctly shut down.
+- **UnLink**: a net isolation by the command `VBoxManage controlvm "виртуалка" setlinkstate1 off`.
 
-Завершение тестирование либо с помощью стандартной командой tmux "kill-window" **Ctrl-b &**, либо командой "detach-client" **Ctrl-b d**: при этом тестирование завершается, tmux закрывается, виртуалки выключаются.
+To finish all tests use standard tmux command: "kill-window" **Ctrl-b &** or "detach-client" **Ctrl-b d**. After this the testing will be finished, tmux closed, VMs de-energized.
 
-# Ручное тестирование
-Переключение раскладок клавиатуры на виртуалках (в виртуальных консолях) **Ctrl-Shift**, пароль у root "**changeme**" (полезен на случай захода через консоль). Но удобнее работать через `ssh` с аутентификацией через уже записанным в виртуалки скриптом `create` публичным ключом.
+# Manual testing
+The root password is "**changeme**", useful to login with the aid of the VirtualBox console. But more convenient to use `ssh` with authentication by already written public keys by the script `create`.
 
-Поскольку все виртуалки объединены в группы, согласно кластерам, запускать и останавливать группу в приложении VirtualBox можно через правую кнопку мыши на имени группы(кластера). Запускать либо целиком группу *Tuchanka*, либо запуская *Tuchanka0* (общие сервисы) и нужную подгруппу, например *Tuchanka1*. Либо скриптом `./power_on`, например аналогично для тестирования первого кластера `power_on 0 1`. После этого зайти на любую машину нужного кластера и выполнить команду поднимающую кластер:
+All VMs are united in groups according to the cluster structure. So you can start and stop the groups of VMs by right clicking on the group name inside GUI VirtualBox. To launch all cluster you can start the group *Tuchanka*, or you can start *Tuchanka0* (common services) and the cluster that you need to test, for instance the group *Tuchanka1*. Or you can use the script `./power_on`, for instance accordingly to test 1 cluster: `power_on 0 1`. After this is needed to login in any node of the cluster and perform the command to rise the Pacemaker cluster software:
 
 	pcs cluster start --all
 
-Кластер автоматический не поднимается (сервер не добавляется в кластер при загрузке) потому, что, по идее, если машина перегрузилась или включилась, то сисадмин должен найти причину, устранить, синхронизировать БД и после этого вручную добавить машину в работающий кластер. Если бы машина добавлялась в кластер автоматический при загрузке, то тогда была бы возможна ситуация когда постоянно обнаруживается неисправность, машина постоянно перезагружается и переподключается, да еще мешает работе здоровой части кластера (могут начаться переключения и прерываться оказание услуг).
+The Pacemaker cluster software does not start automatically (a node will not joint to the cluster on boot up) because if the node was rebooted or de-energized then a sysadmin must investigate this case, find the reason, fix a fault and synchronise database (by pg_basebackup, for instance) and only after all of this the sysadmin may add the node back to the working cluster. Otherwise, the node can go into infinite reboot loop (with breaking the services of the cluster) as if the Pacemaker cluster software would starts automatically.
 
-Внутри виртуалки, находящейся в кластере, состояние кластера можно мониторить скриптом `mon`, находится в /root/bin. Восстанавливать БД, после того как она рассинхронизировалась, можно скриптами типа `restore1a`, лежат в /root/bin. Файлы типа `restore1a` или `restore2` только удаляют текущую директорию БД и копируют БД с текущего мастера. А файлы `restore` (созданы только для тестового стенда) выполняют рутинную работу при тестировании: запускают файл типа `restore1a`, добавляют ноду в кластер `pcs cluster start` и удаляют сообщения о старых ошибках из кластера `pcs resource cleanup`. В продакшине использовать такие скрипты считаю нецелесообразным, т.к. если причина отказа работы сервера неизвестна, то сисадмин должен контролировать каждый шаг.
+You can use the script `/root/bin/mon` inside VM to monitor the status of the cluster. To restore a database you can use scripts such as `/root/bin/restore1a`. The scripts like `restore1a` or `restore2` just deletes the old database directory and makes a new copy from the master. Also there is a script `restore`. This script was created to use only in this test bed. It does a routing work after testing: launches the script like `restore1a`, adds the node to the cluster by command `pcs cluster start` and remove old error messages from the cluster by the command `pcs resource cleanup`. But I think the sysadmin may not use this script on a production server, because if the fault reason is unknown then the sysadmin must check every step.
 
-## Отключение всех машин в кластере
-Жесткое отключение - на заголовке группы и на witness *Close/Power Off*. Или скриптом `power_off`.
+## Turn off all VMs in a cluster
+To turn off all VMs you can make right click on the name of the group in GUI VirtualBox and on witness and choose *Close/Power Off*. Or, if you prefer command prompt use script `power_off`.
 
-# Выявленные при тестировании проблемы
-- На текущий момент *watchdog демон sbd* отрабатывает остановку наблюдаемых демонов, но не их зависание. И, как следствие, некорректно отрабатываются неисправности, приводящие к зависанию только *Corosync* и *Pacemaker*, но при этом не подвешивающие *sbd*. Для проверки *Corosync* уже есть [**PR#83** (в GitHub у *sbd*)](https://github.com/ClusterLabs/sbd/pull/83), принят в ветку *master*. Обещали (в PR#83), что и для Pacemaker будет что-то подобное, надеюсь, что к *RedHat 8* сделают. Но подобные «неисправности» умозрительные, легко имитируются искусственно с помощью, например, `killall -STOP corosync`, но никогда не встречаются в реальной жизни.
+# Discovered problems of the tested software
+1. In *CentOS 7* *watchdog daemon sbd* checks only disappearing the monitored daemons, but not freezing. And so incorrectly behaves on faults when frozen only *Corosync* or *Pacemaker*, but not *sbd* itself. To fix this problem with *Corosync* already accepted into master branch [**PR#83** (GitHub of *sbd*)](https://github.com/ClusterLabs/sbd/pull/83). There was promise in PR#83 that to check freezing of Pacemaker also will be sometime. But this faults is artificial, easily imitates by the command, for instance `killall -STOP corosync`, but never was seen in the real live yet.
 
-- У *Pacemaker* в версии для *CentOS 7* неправильно выставлен *sync\_timeout* у *quorum device*, в результате [при отказе одного узла с некоторой вероятностью перезагружался и второй узел](https://lists.clusterlabs.org/pipermail/users/2019-August/026145.html), на который должен был переехать мастер. Вылечилось увеличением *sync\_timeout* у *quorum device* во время развертывания (в скрипте `setup/setup1`). Эта поправка не была принята разработчиками *Pacemaker*, вместо этого они пообещали переработать инфраструктуру таким образом (в некотором неопределенном будущем), чтобы этот таймаут вычислялся автоматически.
+2. In *CentOS 7* the Pacemaker has incorrectly default *sync\_timeout* of the *quorum device*. As result with some probability (something near 30%) [on fault of one node other may also be rebooted](https://lists.clusterlabs.org/pipermail/users/2019-August/026145.html) and the cluster will be loosed. This was fixed by increasing *sync\_timeout* of the *quorum device* in the script `setup/setup1`. This fix was not been accepted by the developers of Pacemaker yet. Instead they promised to change Pacemaker to calculate right timeouts automatically.
 
-- Если при конфигурировании базы данных указано, что в `LC\_MESSAGES` (текстовые сообщения) может использоваться Юникод, например, `ru\_RU.UTF-8`, то при запуске *postgres* в окружении, где locale не UTF-8, допустим, в пустом окружении (здесь *pacemaker*+*pgsqlms*(paf) запускает *postgres*), то [в логе вместо букв UTF-8 будут знаки вопроса](https://www.postgresql.org/message-id/13FE0F7C-5140-499C-8C2E-0BE64BC3A48B%40ya.ru). Разработчики PostgreSQL так и не договорились, что делать в этом случае. Это обходится, нужно ставить `LC\_MESSAGES=en\_US.UTF-8` при конфигурировании (создании) инстанса БД.
+3. This is observed for non English UTF-8 locales. If a database instance was initiated with non English locale, for instance `ru\_RU.UTF-8`, but *postgres* is launched inside an empty environment (for instance PAF (pgsqlms module) launches postgres in an empty environment), thus [in the postgres logs will be ? signs instead of letters](https://www.postgresql.org/message-id/13FE0F7C-5140-499C-8C2E-0BE64BC3A48B%40ya.ru). The developers didn't decide to fix it. To workaround this, if you use non English locale for database then you need to set `-lc-messages=en\_US.UTF-8` as parameter of initdb.
 
-- Если выставлен wal\_receiver\_timeout (по умолчанию он 60s), то при тесте PostgreSQL-STOP на мастере в кластерах tuchanka3 и tuchanka4 [не происходит переподключение репликации к новому мастеру](https://www.postgresql.org/message-id/60590EC6-4062-4F25-A49C-3948ED2A7D47%40ya.ru). Репликация там синхронная, поэтому останавливается не только раб, но и новый мастер. Обходится установкой  wal\_receiver\_timeout=0 при настройке PostgreSQL.
+4. If wal\_receiver\_timeout set to non zero, by default it is 60s, after the fault PostgreSQL-STOP on the master of the clusters Tuchanka3 or Tuchanka4 [the slaves do not reconnect to the new master](https://www.postgresql.org/message-id/60590EC6-4062-4F25-A49C-3948ED2A7D47%40ya.ru). There is a sync replication and thus not only slaves, but the new master too will be stopped. Workaround is to set wal\_receiver\_timeout=0.
 
-- Изредко наблюдал подвисание репликации у PostgreSQL в тесте ForkBomb (переполнение памяти). [После ForkBomb иногда рабы могут не переподключаться к новому мастеру](https://www.postgresql.org/message-id/60590EC6-4062-4F25-A49C-3948ED2A7D47%40ya.ru). Я встречал такое лишь в кластерах tuchanka3 и tuchanka4, где из-за того, что репликация синхронная, подвисал мастер. Проблема проходила сама, спустя какое-то длительное время (порядка двух часов). Требуется дополнительное исследование, чтобы это исправить. По симптомам похоже на предыдущий баг, который вызывается другой причиной, но с одинаковыми последствиями.
+5. I observed that on the fault ForkBomb (OutOfMemory) the slaves sometimes (relatively rare) did [not reconnect to the new master](https://www.postgresql.org/message-id/60590EC6-4062-4F25-A49C-3948ED2A7D47%40ya.ru). This happens in the clusters Tuchanka3 and Tuchanka4 with sync replication and so the new master was stopped too. The problem will go away after sometime (near 2 hours), may be Pacemaker restarts PostgreSQL. There is needed investigation to fix this. It is looked like as the previous bug, risen by different reason, but with the same consequences.
 
-- Тест переполнения винчестера **OutOfSpace**. Не смотря на то, что PostgreSQL испытывает трудности с записью, он, тем не менее, продолжает работать и PAF (pgsqlms) воспринимает его как нормально работающий. Переноса мастера на другой узел не происходит.
+6. There is a problem with the fault *OutOfSpace** (the overfull of the HDD). Despite the problems with writing to the HDD, the PostgreSQL, however, continue partially works and PAF (pgsqlms module) does not detect the fault. The master does not switch to other node.
 
-
-# ToDo
-Пока нет, но должно появится в следующих итерациях:
-- S3 архивирование (в том числе чтобы добирать недостающие страницы при репликации)
-- Централизованная аутентификация пользователей PostgreSQL (в том числе логинов для репликации?)
-- Настройки для Zabbix
-- Миграция БД между кластерами
-- Апгрейд PostgreSQL (перенос всех БД на новый кластер)
-- Общие сервисы для всех БД, например *pg_cron*.
-
-# Лицензия
-Данный проект распространяется по лицензии MIT.
+# License
+This project is distributed under the MIT license.
 
 > Copyright Ⓒ 2020 "Sberbank Real Estate Center" Limited Liability Company.
 >
@@ -376,5 +373,5 @@ test/failure 2 3
 > ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 > DEALINGS IN THE SOFTWARE.
 
-Картинка крогана взята с [Deviant Art](http://fav.me/d8fo42n) c разрешения автора:
-![Разрешение Noosborn](images/noosborn.png)
+The picture of the krogan was taken from [Deviant Art](http://fav.me/d8fo42n) with permission of the author:
+![Permission of Noosborn](images/noosborn.png)
