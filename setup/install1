@@ -64,12 +64,12 @@ vm_ssh $h "sed -e '/^#\\?baseurl=https\\?:/ s//baseurl=http:/' -e '/^\\(mirrorli
 vm_ssh $h 'yum --assumeyes install deltarpm'
 vm_ssh $h 'yum --assumeyes update'
 # awscli для тестирования s3 на witness
-vm_ssh $h "yum --assumeyes install mc vim nmap mlocate htop pcs gpm ntp screen tmux bind-utils iotop sysbench stress-ng wget zabbix40-agent postgresql${postgresql_version} postgresql${postgresql_version}-server postgresql${postgresql_version}-contrib pgcenter awscli"
+vm_ssh $h "yum --assumeyes install mc vim nmap mlocate htop pcs gpm ntp screen tmux bind-utils iotop wget"
 if [ $h -eq $Witness ]
 then
 	vm_ssh $h 'yum --assumeyes install corosync-qnetd'
 else
-	vm_ssh $h 'yum --assumeyes install resource-agents-paf corosync-qdevice sbd'
+	vm_ssh $h "yum --assumeyes install resource-agents-paf corosync-qdevice sbd postgresql${postgresql_version} postgresql${postgresql_version}-server postgresql${postgresql_version}-contrib pgcenter"
 fi
 
 if [ $h -eq $Witness ]
