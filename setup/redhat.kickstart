@@ -42,7 +42,7 @@ auth  --useshadow  --passalgo=sha512
 text
 
 # System keyboard
-keyboard --vckeymap=ru
+keyboard --vckeymap=us #--vckeymap=ru
 
 # System language
 lang @@VBOX_INSERT_LOCALE@@
