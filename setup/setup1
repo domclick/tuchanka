@@ -82,11 +82,11 @@ then
 	vm_ssh $Witness "cat >>'/etc/ntp.conf'" <<-EOF
 		# Added by tuchanka setup script
 		restrict ${vboxnet_prefix}.0 mask 255.255.255.0 kod nomodify notrap
-		pool ru.pool.ntp.org iburst preempt
-		server ntp1.vniiftri.ru iburst
-		server ntp2.vniiftri.ru iburst
-		server ntp3.vniiftri.ru iburst
-		server ntp4.vniiftri.ru iburst
+		pool pool.ntp.org iburst preempt
+		server 0.pool.ntp.org
+		server 1.pool.ntp.org
+		server 2.pool.ntp.org
+		server 3.pool.ntp.org
 		# orphan mode
 		tos orphan 10
 		EOF
