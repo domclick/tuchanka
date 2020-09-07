@@ -189,17 +189,19 @@ else
 		pgport=${db_port[$db]}
 		m=${db_setup_master[$db]}
 		pgdata="${pgsql_dir}/${config_name}"
+		log_dir="/var/log/${config_name}"
 		custom_conf="${config_name}.conf"
 		restore_paf="${config_name}.paf"
 		pacemaker_script="${config_name}"
 		restore_sh="restore${db_suffix[$db]}"
 		echo "Configure ${config_name}"
 		vm_ssh $m "su --login postgres -c \"pg_ctl init --wait --pgdata='${pgdata}' --options='--locale=en_US.UTF-8 --lc-messages=en_US.UTF-8 --auth-local=peer --auth-host=scram-sha-256 --data-checksums'\""
+		vm_cp2pgsql $m "${upload_dir}/${vm_name[$m]}/${custom_conf}" "${pgsql_dir}/${custom_conf}"
+		vm_cp2pgsql $m "${upload_dir}/${vm_name[$m]}/${restore_paf}" "${pgsql_dir}/${restore_paf}"
+		vm_ssh $m "mkdir '${log_dir}' && chown postgres '${log_dir}'"
 		# pg_ident.conf pg_hba.conf postgresql.conf common for all databases
 		vm_ssh $m "cp -a '${pgdata}/postgresql.conf' '${pgdata}/postgresql.conf.original'"
 		vm_ssh $m "echo -e \"include='postgresql.conf.original'\ninclude_if_exists='../postgresql.conf'\ninclude_if_exists='../${custom_conf}'\" >|'${pgdata}/postgresql.conf'"
-		vm_cp2pgsql $m "${upload_dir}/${vm_name[$m]}/${custom_conf}" "${pgsql_dir}/${custom_conf}"
-		vm_cp2pgsql $m "${upload_dir}/${vm_name[$m]}/${restore_paf}" "${pgsql_dir}/${restore_paf}"
 		# without -t is freezed here
 		vm_ssh $m -t "su -l postgres -c \"pg_ctl start --wait --options='--synchronous_standby_names=' --pgdata='${pgdata}'\""
 		# создаю пользователя для репликации, пароль захардкожен, возможно в будущем будет другой способ аутентикации
@@ -208,6 +210,7 @@ else
 		do
 			vm_cp2pgsql $hh "${upload_dir}/${vm_name[$hh]}/${custom_conf}" "${pgsql_dir}/${custom_conf}"
 			vm_cp2pgsql $hh "${upload_dir}/${vm_name[$hh]}/${restore_paf}" "${pgsql_dir}/${restore_paf}"
+			vm_ssh $hh "mkdir '${log_dir}' && chown postgres '${log_dir}'"
 			vm_ssh $hh "su -l postgres -c \"pg_basebackup --pgdata='${pgdata}' --dbname='host=${vm_name[$m]} port=${pgport} user=replicant sslmode=disable' --progress --write-recovery-conf\""
 			vm_ssh $hh -t "su -l postgres -c \"pg_ctl start --wait --pgdata='${pgdata}'\""
 			echo "Wait for starting replication on slave ${vm_name[$hh]}"
