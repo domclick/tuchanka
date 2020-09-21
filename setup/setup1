@@ -211,7 +211,7 @@ else
 			vm_cp2pgsql $hh "${upload_dir}/${vm_name[$hh]}/${custom_conf}" "${pgsql_dir}/${custom_conf}"
 			vm_cp2pgsql $hh "${upload_dir}/${vm_name[$hh]}/${restore_paf}" "${pgsql_dir}/${restore_paf}"
 			vm_ssh $hh "mkdir '${log_dir}' && chown postgres '${log_dir}'"
-			vm_ssh $hh "su -l postgres -c \"pg_basebackup --pgdata='${pgdata}' --dbname='host=${vm_name[$m]} port=${pgport} user=replicant sslmode=disable' --progress --write-recovery-conf\""
+			vm_ssh $hh "su -l postgres -c \"pg_basebackup --pgdata='${pgdata}' --dbname='host=${vm_name[$m]} port=${pgport} user=replicant' --progress --write-recovery-conf\""
 			vm_ssh $hh -t "su -l postgres -c \"pg_ctl start --wait --pgdata='${pgdata}'\""
 			echo "Wait for starting replication on slave ${vm_name[$hh]}"
 			while true
@@ -238,7 +238,7 @@ else
 				command rm -f '/tmp/.s.PGSQL.${pgport}.lock'
 				# Если бэкапить таким образом, заканчивается место в виртуалках
 				#command mv '${pgdata}' "${pgdata}.\$(date --iso-8601=seconds)"
-				command su -l postgres -c "pg_basebackup --pgdata='${pgdata}' --dbname='host=${config_name} port=${pgport} user=replicant sslmode=disable' --progress"
+				command su -l postgres -c "pg_basebackup --pgdata='${pgdata}' --dbname='host=${config_name} port=${pgport} user=replicant' --progress"
 				EOF
 			vm_ssh $hh "chmod 755 'bin/${restore_sh}'"
 			vm_cp $hh "${upload_dir}/${vm_name[$hh]}/restore" "bin/"

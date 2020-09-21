@@ -19,6 +19,6 @@
 # DEALINGS IN THE SOFTWARE.
 
 # recovery.conf for krogan3, pgsqlms pacemaker module
-primary_conninfo = 'host=krogan3 user=replicant application_name=tuchanka3b sslmode=disable'
+primary_conninfo = 'host=krogan3 user=replicant application_name=tuchanka3b'
 recovery_target_timeline = 'latest'
 standby_mode = 'on'

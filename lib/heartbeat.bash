@@ -53,7 +53,7 @@ then
 		# $4 sql запрос к hearbeat
 		local query="$4"
 		psql --no-psqlrc --quiet --no-align --tuples-only \
-			--dbname="postgresql://heartbeat:ChangeMe@${ip_port}/heartbeat?connect_timeout=3&application_name=${application_name}&keepalives=1&keepalives_idle=1&keepalives_interval=1&keepalives_count=1&target_session_attrs=${target_session_attrs}" \
+			--dbname="postgresql://heartbeat:ChangeMe@${ip_port}/heartbeat?connect_timeout=5&application_name=${application_name}&keepalives=1&keepalives_idle=1&keepalives_interval=1&keepalives_count=1&target_session_attrs=${target_session_attrs}" \
 			--command="${query}" \
 			|| return $?
 	}
