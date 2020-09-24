@@ -19,6 +19,6 @@
 # DEALINGS IN THE SOFTWARE.
 
 # recovery.conf for krogan4, pgsqlms pacemaker module
-primary_conninfo = 'host=krogan4 user=replicant application_name=tuchanka4a'
+primary_conninfo = 'host=krogan4 user=replicant application_name=tuchanka4a connect_timeout=5 keepalives=1 keepalives_idle=1 keepalives_interval=3 keepalives_count=3'
 recovery_target_timeline = 'latest'
 standby_mode = 'on'

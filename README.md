@@ -344,11 +344,7 @@ To turn off all VMs you can make right click on the name of the group in GUI Vir
 
 3. This is observed for non English UTF-8 locales. If a database instance was initiated with non English locale, for instance `ru\_RU.UTF-8`, but *postgres* is launched inside an empty environment (for instance PAF (pgsqlms module) launches postgres in an empty environment), thus [in the postgres logs will be ? signs instead of letters](https://www.postgresql.org/message-id/13FE0F7C-5140-499C-8C2E-0BE64BC3A48B%40ya.ru). The developers didn't decide to fix it. To workaround this, if you use non English locale for database then you need to set `-lc-messages=en\_US.UTF-8` as parameter of initdb.
 
-4. If wal\_receiver\_timeout set to non zero, by default it is 60s, after the fault PostgreSQL-STOP on the master of the clusters Tuchanka3 or Tuchanka4 [the slaves do not reconnect to the new master](https://www.postgresql.org/message-id/60590EC6-4062-4F25-A49C-3948ED2A7D47%40ya.ru). There is a sync replication and thus not only slaves, but the new master too will be stopped. Workaround is to set wal\_receiver\_timeout=0.
-
-5. I observed that on the fault ForkBomb (OutOfMemory) the slaves sometimes (relatively rare) did [not reconnect to the new master](https://www.postgresql.org/message-id/60590EC6-4062-4F25-A49C-3948ED2A7D47%40ya.ru). This happens in the clusters Tuchanka3 and Tuchanka4 with sync replication and so the new master was stopped too. The problem will go away after sometime (near 2 hours), may be Pacemaker restarts PostgreSQL. There is needed investigation to fix this. It is looked like as the previous bug, risen by different reason, but with the same consequences.
-
-6. There is a problem with the fault *OutOfSpace** (the overfull of the HDD). Despite the problems with writing to the HDD, the PostgreSQL, however, continue partially works and PAF (pgsqlms module) does not detect the fault. The master does not switch to other node.
+4. There is a problem with the fault *OutOfSpace* (the overfull of the HDD). Despite the problems with writing to the HDD, the PostgreSQL, however, continue partially works and PAF (pgsqlms module) does not detect the fault. The master does not switch to other node.
 
 # License
 This project is distributed under the MIT license.
